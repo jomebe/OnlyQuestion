@@ -5,8 +5,16 @@ type ImageSettings = {
   background: number;
   contrast: number;
   brightness: number;
-  colorRemoval: number;
+  highlighterRemoval: number;
+  colorPenRemoval: number;
   grayscale: boolean;
+};
+
+type UsageState = {
+  date: string;
+  freeUsed: number;
+  credits: number;
+  unlimited: boolean;
 };
 
 type LoadedImage = {
@@ -15,13 +23,30 @@ type LoadedImage = {
   height: number;
 };
 
-type SliderKey = "background" | "contrast" | "brightness" | "colorRemoval";
+type SliderKey =
+  | "background"
+  | "contrast"
+  | "brightness"
+  | "highlighterRemoval"
+  | "colorPenRemoval";
+
+type Feedback = {
+  createdAt: string;
+  fileName: string;
+  message: string;
+};
+
+const dailyFreeLimit = 3;
+const maxCanvasSide = 2200;
+const usageKey = "only-question-usage";
+const feedbackKey = "only-question-feedback";
 
 const defaultSettings: ImageSettings = {
   background: 64,
   contrast: 52,
   brightness: 6,
-  colorRemoval: 70,
+  highlighterRemoval: 72,
+  colorPenRemoval: 56,
   grayscale: false,
 };
 
@@ -29,7 +54,8 @@ const autoSettings: ImageSettings = {
   background: 76,
   contrast: 62,
   brightness: 8,
-  colorRemoval: 82,
+  highlighterRemoval: 86,
+  colorPenRemoval: 72,
   grayscale: false,
 };
 
@@ -40,24 +66,76 @@ const sliders: Array<{
   max: number;
   unit: string;
 }> = [
-  { key: "background", label: "배경 제거", min: 0, max: 100, unit: "%" },
+  { key: "background", label: "배경 제거 강도", min: 0, max: 100, unit: "%" },
   { key: "contrast", label: "대비", min: 0, max: 100, unit: "%" },
   { key: "brightness", label: "밝기", min: -30, max: 30, unit: "" },
-  { key: "colorRemoval", label: "색펜/형광펜 제거", min: 0, max: 100, unit: "%" },
+  {
+    key: "highlighterRemoval",
+    label: "형광펜 제거 강도",
+    min: 0,
+    max: 100,
+    unit: "%",
+  },
+  {
+    key: "colorPenRemoval",
+    label: "색펜 제거 강도",
+    min: 0,
+    max: 100,
+    unit: "%",
+  },
 ];
 
-const maxCanvasSide = 2200;
+const plans = [
+  {
+    name: "무료",
+    price: "하루 3장",
+    description: "가끔 쓰는 학생용. 사진은 서버에 저장하지 않습니다.",
+    action: "무료로 쓰기",
+  },
+  {
+    name: "10장 이용권",
+    price: "500원",
+    description: "시험지 정리 오래 걸리면 그냥 500원으로 끝내세요.",
+    action: "10장 구매",
+  },
+  {
+    name: "월 무제한",
+    price: "1,900원",
+    description: "시험 기간에 계속 쓰는 학생용.",
+    action: "무제한 문의",
+  },
+  {
+    name: "학원/과외쌤용",
+    price: "월 9,900원",
+    description: "대량 정리, 여러 학생 자료 정리 문의.",
+    action: "학원용 문의",
+  },
+];
 
 export default function App() {
   const [source, setSource] = useState<LoadedImage | null>(null);
   const [originalUrl, setOriginalUrl] = useState("");
   const [resultUrl, setResultUrl] = useState("");
   const [settings, setSettings] = useState<ImageSettings>(defaultSettings);
+  const [usage, setUsage] = useState<UsageState>(() => loadUsage());
   const [fileName, setFileName] = useState("");
   const [error, setError] = useState("");
   const [isProcessing, setIsProcessing] = useState(false);
+  const [showUpgrade, setShowUpgrade] = useState(false);
+  const [ticketCode, setTicketCode] = useState("");
+  const [ticketMessage, setTicketMessage] = useState("");
+  const [showFeedback, setShowFeedback] = useState(false);
+  const [feedback, setFeedback] = useState("");
+  const [feedbackMessage, setFeedbackMessage] = useState("");
   const objectUrlRef = useRef("");
   const jobRef = useRef(0);
+
+  const remainingFree = Math.max(0, dailyFreeLimit - usage.freeUsed);
+  const hasUsage = usage.unlimited || remainingFree > 0 || usage.credits > 0;
+
+  useEffect(() => {
+    saveUsage(usage);
+  }, [usage]);
 
   useEffect(() => {
     return () => {
@@ -98,6 +176,29 @@ export default function App() {
     return () => window.cancelAnimationFrame(frame);
   }, [source, settings]);
 
+  const consumeOneUse = () => {
+    if (usage.unlimited) {
+      return true;
+    }
+
+    if (remainingFree > 0) {
+      setUsage((current) => ({ ...current, freeUsed: current.freeUsed + 1 }));
+      if (remainingFree === 1 && usage.credits === 0) {
+        setShowUpgrade(true);
+      }
+      return true;
+    }
+
+    if (usage.credits > 0) {
+      setUsage((current) => ({ ...current, credits: current.credits - 1 }));
+      return true;
+    }
+
+    setShowUpgrade(true);
+    setError("오늘 무료 3장을 다 썼습니다. 이용권을 구매하거나 코드를 입력하세요.");
+    return false;
+  };
+
   const loadFile = (file: File | null) => {
     if (!file) {
       return;
@@ -112,6 +213,11 @@ export default function App() {
     const image = new Image();
 
     image.onload = () => {
+      if (!consumeOneUse()) {
+        URL.revokeObjectURL(objectUrl);
+        return;
+      }
+
       if (objectUrlRef.current) {
         URL.revokeObjectURL(objectUrlRef.current);
       }
@@ -124,6 +230,7 @@ export default function App() {
         height: image.naturalHeight,
       });
       setFileName(file.name);
+      setFeedbackMessage("");
       setError("");
     };
 
@@ -150,6 +257,48 @@ export default function App() {
       ...current,
       [key]: value,
     }));
+  };
+
+  const applyTicketCode = () => {
+    const code = ticketCode.trim().toUpperCase();
+
+    if (code === "CLEAN10") {
+      setUsage((current) => ({ ...current, credits: current.credits + 10 }));
+      setTicketCode("");
+      setTicketMessage("10장 이용권이 추가됐습니다.");
+      setShowUpgrade(false);
+      return;
+    }
+
+    if (code === "PRO1900") {
+      setUsage((current) => ({ ...current, unlimited: true }));
+      setTicketCode("");
+      setTicketMessage("월 무제한 모드가 켜졌습니다.");
+      setShowUpgrade(false);
+      return;
+    }
+
+    setTicketMessage("코드를 다시 확인하세요. 테스트 코드: CLEAN10, PRO1900");
+  };
+
+  const submitFeedback = () => {
+    const message = feedback.trim();
+    if (!message) {
+      setFeedbackMessage("어떤 점이 이상했는지 적어주세요.");
+      return;
+    }
+
+    const nextFeedback: Feedback = {
+      createdAt: new Date().toISOString(),
+      fileName: fileName || "no-file",
+      message,
+    };
+    const previous = loadFeedback();
+    localStorage.setItem(feedbackKey, JSON.stringify([nextFeedback, ...previous]));
+    console.log("문제만 feedback", nextFeedback);
+    setFeedback("");
+    setFeedbackMessage("피드백 저장 완료. 다음 개선에 반영합니다.");
+    setShowFeedback(false);
   };
 
   const downloadPng = () => {
@@ -203,14 +352,37 @@ export default function App() {
       <header className="topbar">
         <div>
           <h1>문제만</h1>
-          <p>{fileName || "사진을 올리면 바로 처리합니다"}</p>
+          <p>{fileName || "하루 3장은 무료. 사진은 서버에 저장하지 않습니다."}</p>
         </div>
-        {source && (
-          <span className="image-size">
-            {source.width} x {source.height}
-          </span>
-        )}
+        <button
+          className="ghost-button"
+          type="button"
+          onClick={() => setShowUpgrade(true)}
+        >
+          이용권 구매
+        </button>
       </header>
+
+      <section className="usage-bar" aria-label="사용량">
+        <div>
+          <strong>
+            {usage.unlimited
+              ? "월 무제한 사용 중"
+              : `오늘 무료 3장 중 ${remainingFree}장 남음`}
+          </strong>
+          <span>
+            {usage.unlimited
+              ? "시험 기간에도 계속 사용 가능"
+              : `추가 이용권 ${usage.credits}장`}
+          </span>
+        </div>
+        <button type="button" onClick={() => setShowUpgrade(true)}>
+          업그레이드
+        </button>
+      </section>
+
+      {ticketMessage && <p className="notice-text">{ticketMessage}</p>}
+      {error && <p className="error-text">{error}</p>}
 
       <main className="workspace">
         <section className="upload-pane" aria-label="이미지 업로드">
@@ -225,7 +397,7 @@ export default function App() {
               onChange={handleFileChange}
               aria-label="이미지 선택"
             />
-            <span>이미지 선택</span>
+            <span>사진 올리기</span>
             <strong>JPG, PNG</strong>
           </label>
 
@@ -238,7 +410,18 @@ export default function App() {
             자동 클린
           </button>
 
-          {error && <p className="error-text">{error}</p>}
+          <p className="helper-text">
+            검은 펜 필기는 일부 남을 수 있음
+          </p>
+          {!hasUsage && (
+            <button
+              className="buy-button"
+              type="button"
+              onClick={() => setShowUpgrade(true)}
+            >
+              이용권 구매
+            </button>
+          )}
         </section>
 
         <section className="preview-grid" aria-label="이미지 미리보기">
@@ -297,8 +480,41 @@ export default function App() {
               PDF 저장
             </button>
           </div>
+
+          <button
+            className="feedback-button"
+            type="button"
+            onClick={() => setShowFeedback((current) => !current)}
+            disabled={!resultUrl}
+          >
+            결과가 이상해요
+          </button>
+
+          {showFeedback && (
+            <div className="feedback-box">
+              <textarea
+                value={feedback}
+                onChange={(event) => setFeedback(event.target.value)}
+                placeholder="예: 형광펜이 덜 지워졌어요"
+                rows={4}
+              />
+              <button type="button" onClick={submitFeedback}>
+                피드백 보내기
+              </button>
+            </div>
+          )}
+          {feedbackMessage && <p className="notice-text">{feedbackMessage}</p>}
         </aside>
       </main>
+
+      {showUpgrade && (
+        <UpgradeModal
+          ticketCode={ticketCode}
+          onTicketCodeChange={setTicketCode}
+          onApplyTicketCode={applyTicketCode}
+          onClose={() => setShowUpgrade(false)}
+        />
+      )}
     </div>
   );
 }
@@ -324,6 +540,89 @@ function PreviewPanel({
   );
 }
 
+function UpgradeModal({
+  ticketCode,
+  onTicketCodeChange,
+  onApplyTicketCode,
+  onClose,
+}: {
+  ticketCode: string;
+  onTicketCodeChange: (value: string) => void;
+  onApplyTicketCode: () => void;
+  onClose: () => void;
+}) {
+  return (
+    <div className="modal-backdrop" role="dialog" aria-modal="true">
+      <section className="pricing-modal">
+        <div className="modal-head">
+          <div>
+            <h2>하루 3장은 무료</h2>
+            <p>시험지 정리 오래 걸리면 그냥 500원으로 끝내세요.</p>
+          </div>
+          <button type="button" onClick={onClose} aria-label="닫기">
+            닫기
+          </button>
+        </div>
+
+        <div className="plan-grid">
+          {plans.map((plan) => (
+            <article className="plan-card" key={plan.name}>
+              <strong>{plan.name}</strong>
+              <b>{plan.price}</b>
+              <p>{plan.description}</p>
+              <button
+                type="button"
+                onClick={() => {
+                  if (plan.name === "무료") {
+                    onClose();
+                    return;
+                  }
+
+                  window.location.href = `mailto:onlyquestion@example.com?subject=${encodeURIComponent(
+                    `[문제만] ${plan.name} 문의`,
+                  )}`;
+                }}
+              >
+                {plan.action}
+              </button>
+            </article>
+          ))}
+        </div>
+
+        <div className="manual-pay">
+          <strong>수동 결제 MVP</strong>
+          <p>
+            토스/카카오페이 송금 후 오픈채팅 또는 이메일로 인증하면 이용권 코드를
+            지급합니다.
+          </p>
+          <div className="contact-row">
+            <a href="https://open.kakao.com/o/samples" target="_blank" rel="noreferrer">
+              오픈채팅 문의
+            </a>
+            <a href="mailto:onlyquestion@example.com">이메일 문의</a>
+          </div>
+        </div>
+
+        <div className="ticket-form">
+          <label htmlFor="ticket-code">이용권 코드 입력</label>
+          <div>
+            <input
+              id="ticket-code"
+              value={ticketCode}
+              onChange={(event) => onTicketCodeChange(event.target.value)}
+              placeholder="CLEAN10 또는 PRO1900"
+            />
+            <button type="button" onClick={onApplyTicketCode}>
+              적용
+            </button>
+          </div>
+          <p>테스트: CLEAN10 = 10장 추가, PRO1900 = 무제한</p>
+        </div>
+      </section>
+    </div>
+  );
+}
+
 function cleanImage(image: HTMLImageElement, settings: ImageSettings) {
   const canvas = document.createElement("canvas");
   const scale = Math.min(
@@ -346,7 +645,8 @@ function cleanImage(image: HTMLImageElement, settings: ImageSettings) {
   const pixels = imageData.data;
   const gray = new Float32Array(width * height);
   const backgroundStrength = settings.background / 100;
-  const colorStrength = settings.colorRemoval / 100;
+  const highlighterStrength = settings.highlighterRemoval / 100;
+  const colorPenStrength = settings.colorPenRemoval / 100;
   const contrastFactor = 0.85 + settings.contrast / 75;
 
   for (let index = 0, pixelIndex = 0; index < pixels.length; index += 4) {
@@ -380,11 +680,14 @@ function cleanImage(image: HTMLImageElement, settings: ImageSettings) {
       luminance < 195 &&
       (red > min + 34 || green > min + 34 || blue > min + 34);
 
-    if (isHighlighter || isColorPen) {
-      const removal = colorStrength * (isHighlighter ? 0.95 : 0.74);
-      red = mix(red, 255, removal);
-      green = mix(green, 255, removal);
-      blue = mix(blue, 255, removal);
+    if (isHighlighter) {
+      red = mix(red, 255, highlighterStrength * 0.95);
+      green = mix(green, 255, highlighterStrength * 0.95);
+      blue = mix(blue, 255, highlighterStrength * 0.95);
+    } else if (isColorPen) {
+      red = mix(red, 255, colorPenStrength * 0.78);
+      green = mix(green, 255, colorPenStrength * 0.78);
+      blue = mix(blue, 255, colorPenStrength * 0.78);
     }
 
     const afterColorLuminance = getLuminance(red, green, blue);
@@ -479,6 +782,50 @@ function applySimpleAdaptiveThreshold(
       pixels[pixelIndex + 3] = 255;
     }
   }
+}
+
+function loadUsage(): UsageState {
+  const today = getTodayKey();
+  const fallback: UsageState = {
+    date: today,
+    freeUsed: 0,
+    credits: 0,
+    unlimited: false,
+  };
+
+  try {
+    const saved = localStorage.getItem(usageKey);
+    if (!saved) {
+      return fallback;
+    }
+
+    const parsed = JSON.parse(saved) as Partial<UsageState>;
+    return {
+      date: today,
+      freeUsed: parsed.date === today ? Number(parsed.freeUsed) || 0 : 0,
+      credits: Math.max(0, Number(parsed.credits) || 0),
+      unlimited: Boolean(parsed.unlimited),
+    };
+  } catch {
+    return fallback;
+  }
+}
+
+function saveUsage(usage: UsageState) {
+  localStorage.setItem(usageKey, JSON.stringify(usage));
+}
+
+function loadFeedback(): Feedback[] {
+  try {
+    const saved = localStorage.getItem(feedbackKey);
+    return saved ? (JSON.parse(saved) as Feedback[]) : [];
+  } catch {
+    return [];
+  }
+}
+
+function getTodayKey() {
+  return new Date().toISOString().slice(0, 10);
 }
 
 function getLuminance(red: number, green: number, blue: number) {

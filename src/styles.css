@@ -27,6 +27,11 @@ button {
   border: 0;
 }
 
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
 .app {
   width: min(1440px, 100%);
   min-height: 100vh;
@@ -57,14 +62,62 @@ button {
   word-break: break-word;
 }
 
-.image-size {
-  flex: 0 0 auto;
-  padding: 7px 10px;
-  border: 1px solid #cbd5df;
+.ghost-button,
+.usage-bar button,
+.buy-button,
+.feedback-button,
+.feedback-box button,
+.ticket-form button,
+.plan-card button,
+.contact-row a,
+.modal-head button {
+  min-height: 40px;
   border-radius: 6px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.ghost-button {
+  flex: 0 0 auto;
+  padding: 0 14px;
+  border-radius: 6px;
+  border: 1px solid #0f8b8d;
   background: #ffffff;
-  color: #475569;
+  color: #0f6769;
+}
+
+.usage-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 14px;
+  padding: 12px 14px;
+  border: 1px solid #cbd5df;
+  border-radius: 8px;
+  background: #ffffff;
+}
+
+.usage-bar div {
+  display: grid;
+  gap: 3px;
+}
+
+.usage-bar strong {
+  color: #121820;
+  font-size: 15px;
+}
+
+.usage-bar span {
+  color: #64748b;
   font-size: 13px;
+}
+
+.usage-bar button,
+.buy-button {
+  padding: 0 14px;
+  background: #0f8b8d;
+  color: #ffffff;
 }
 
 .workspace {
@@ -150,16 +203,42 @@ button {
   background: #2f6f4e;
 }
 
+.buy-button {
+  width: 100%;
+  margin-top: 10px;
+}
+
 button:disabled {
   cursor: not-allowed;
   opacity: 0.45;
 }
 
+.notice-text,
 .error-text {
-  margin: 12px 0 0;
-  color: #b42318;
+  margin: 0 0 12px;
+  padding: 10px 12px;
+  border-radius: 6px;
   font-size: 14px;
   line-height: 1.5;
+}
+
+.notice-text {
+  border: 1px solid #b7ddc6;
+  background: #effaf3;
+  color: #22613a;
+}
+
+.error-text {
+  border: 1px solid #f3b5b0;
+  background: #fff4f2;
+  color: #b42318;
+}
+
+.helper-text {
+  margin: 10px 0 0;
+  color: #6b7280;
+  font-size: 12px;
+  line-height: 1.45;
 }
 
 .preview-grid {
@@ -276,6 +355,188 @@ button:disabled {
   background: #7a4e12;
 }
 
+.feedback-button {
+  width: 100%;
+  margin-top: 10px;
+  border: 1px solid #cbd5df;
+  background: #ffffff;
+  color: #344256;
+}
+
+.feedback-box {
+  display: grid;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.feedback-box textarea,
+.ticket-form input {
+  width: 100%;
+  border: 1px solid #cbd5df;
+  border-radius: 6px;
+  color: #1f2933;
+  background: #ffffff;
+}
+
+.feedback-box textarea {
+  min-height: 92px;
+  padding: 10px;
+  resize: vertical;
+}
+
+.feedback-box button {
+  background: #26323f;
+  color: #ffffff;
+}
+
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  display: grid;
+  place-items: center;
+  padding: 16px;
+  background: rgb(15 23 42 / 0.45);
+}
+
+.pricing-modal {
+  width: min(760px, 100%);
+  max-height: calc(100vh - 32px);
+  overflow: auto;
+  border-radius: 8px;
+  background: #ffffff;
+  box-shadow: 0 24px 80px rgb(15 23 42 / 0.2);
+}
+
+.modal-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 18px;
+  border-bottom: 1px solid #d4dde6;
+}
+
+.modal-head h2 {
+  margin: 0;
+  color: #121820;
+  font-size: 22px;
+  letter-spacing: 0;
+}
+
+.modal-head p {
+  margin: 6px 0 0;
+  color: #64748b;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.modal-head button {
+  flex: 0 0 auto;
+  padding: 0 12px;
+  background: #eef1f4;
+  color: #344256;
+}
+
+.plan-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+  padding: 14px 18px;
+}
+
+.plan-card {
+  display: grid;
+  align-content: start;
+  gap: 8px;
+  min-height: 156px;
+  padding: 12px;
+  border: 1px solid #d4dde6;
+  border-radius: 8px;
+  background: #fbfcfd;
+}
+
+.plan-card strong {
+  color: #26323f;
+  font-size: 14px;
+}
+
+.plan-card b {
+  color: #0f6769;
+  font-size: 22px;
+  letter-spacing: 0;
+}
+
+.plan-card p,
+.manual-pay p,
+.ticket-form p {
+  margin: 0;
+  color: #64748b;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.plan-card button {
+  margin-top: auto;
+  background: #0f8b8d;
+  color: #ffffff;
+}
+
+.manual-pay,
+.ticket-form {
+  margin: 0 18px 16px;
+  padding: 14px;
+  border: 1px solid #d4dde6;
+  border-radius: 8px;
+}
+
+.manual-pay strong,
+.ticket-form label {
+  display: block;
+  margin-bottom: 8px;
+  color: #26323f;
+  font-weight: 800;
+}
+
+.contact-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.contact-row a {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 12px;
+  background: #26323f;
+  color: #ffffff;
+  text-align: center;
+}
+
+.contact-row a:first-child {
+  background: #f4c430;
+  color: #1f2933;
+}
+
+.ticket-form div {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 96px;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.ticket-form input {
+  min-height: 42px;
+  padding: 0 11px;
+}
+
+.ticket-form button {
+  background: #0f8b8d;
+  color: #ffffff;
+}
+
 @media (max-width: 1100px) {
   .workspace {
     grid-template-columns: 240px minmax(0, 1fr);
@@ -294,6 +555,7 @@ button:disabled {
   .topbar {
     align-items: flex-start;
     flex-direction: column;
+    gap: 10px;
   }
 
   .workspace,
@@ -316,6 +578,20 @@ button:disabled {
   .image-frame img {
     max-height: 58vh;
   }
+
+  .usage-bar {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .usage-bar button,
+  .ghost-button {
+    width: 100%;
+  }
+
+  .plan-grid {
+    grid-template-columns: 1fr 1fr;
+  }
 }
 
 @media (max-width: 420px) {
@@ -325,5 +601,19 @@ button:disabled {
 
   .topbar h1 {
     font-size: 24px;
+  }
+
+  .plan-grid,
+  .contact-row,
+  .ticket-form div {
+    grid-template-columns: 1fr;
+  }
+
+  .modal-head {
+    flex-direction: column;
+  }
+
+  .modal-head button {
+    width: 100%;
   }
 }
