@@ -144,7 +144,6 @@ export default function App() {
     message: "",
   });
   const [inquiryStatus, setInquiryStatus] = useState("");
-  const [isSubmittingInquiry, setIsSubmittingInquiry] = useState(false);
   const objectUrlRef = useRef("");
   const jobRef = useRef(0);
 
@@ -327,45 +326,6 @@ export default function App() {
 
   const updateInquiry = (key: keyof InquiryForm, value: string) => {
     setInquiry((current) => ({ ...current, [key]: value }));
-  };
-
-  const submitInquiry = async () => {
-    if (!inquiry.email.trim() || !inquiry.message.trim()) {
-      setInquiryStatus("연락처와 문의 내용을 입력해주세요.");
-      return;
-    }
-
-    setIsSubmittingInquiry(true);
-    setInquiryStatus("");
-
-    try {
-      const response = await fetch(formspreeEndpoint, {
-        method: "POST",
-        headers: {
-          Accept: "application/json",
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          _subject: "[문제만] 제휴/학원 문의",
-          name: inquiry.name,
-          email: inquiry.email,
-          organization: inquiry.organization,
-          message: inquiry.message,
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error("Inquiry failed.");
-      }
-
-      setInquiry({ name: "", email: "", organization: "", message: "" });
-      setInquiryStatus("문의가 접수됐습니다. 확인 후 연락드릴게요.");
-      setShowInquiry(false);
-    } catch {
-      setInquiryStatus("전송 실패. 잠시 후 다시 시도해주세요.");
-    } finally {
-      setIsSubmittingInquiry(false);
-    }
   };
 
   const downloadPng = () => {
@@ -605,9 +565,7 @@ export default function App() {
         <InquiryModal
           inquiry={inquiry}
           status={inquiryStatus}
-          isSubmitting={isSubmittingInquiry}
           onChange={updateInquiry}
-          onSubmit={submitInquiry}
           onClose={() => setShowInquiry(false)}
         />
       )}
@@ -713,16 +671,12 @@ function UpgradeModal({
 function InquiryModal({
   inquiry,
   status,
-  isSubmitting,
   onChange,
-  onSubmit,
   onClose,
 }: {
   inquiry: InquiryForm;
   status: string;
-  isSubmitting: boolean;
   onChange: (key: keyof InquiryForm, value: string) => void;
-  onSubmit: () => void;
   onClose: () => void;
 }) {
   return (
@@ -738,10 +692,17 @@ function InquiryModal({
           </button>
         </div>
 
-        <div className="inquiry-form">
+        <form
+          className="inquiry-form"
+          action={formspreeEndpoint}
+          method="POST"
+        >
+          <input type="hidden" name="_subject" value="[문제만] 제휴/학원 문의" />
+          <input type="hidden" name="service" value="문제만" />
           <label>
             이름
             <input
+              name="name"
               value={inquiry.name}
               onChange={(event) => onChange("name", event.target.value)}
               placeholder="홍길동"
@@ -751,14 +712,17 @@ function InquiryModal({
             연락받을 이메일
             <input
               type="email"
+              name="email"
               value={inquiry.email}
               onChange={(event) => onChange("email", event.target.value)}
               placeholder="name@example.com"
+              required
             />
           </label>
           <label>
             기관/학원명
             <input
+              name="organization"
               value={inquiry.organization}
               onChange={(event) => onChange("organization", event.target.value)}
               placeholder="문제만학원"
@@ -767,17 +731,19 @@ function InquiryModal({
           <label>
             문의 내용
             <textarea
+              name="message"
               value={inquiry.message}
               onChange={(event) => onChange("message", event.target.value)}
               placeholder="예: 학원에서 학생 50명 정도가 쓸 예정입니다."
               rows={5}
+              required
             />
           </label>
           {status && <p className="notice-text">{status}</p>}
-          <button type="button" onClick={onSubmit} disabled={isSubmitting}>
-            {isSubmitting ? "전송 중" : "문의 보내기"}
+          <button type="submit">
+            문의 보내기
           </button>
-        </div>
+        </form>
       </section>
     </div>
   );
