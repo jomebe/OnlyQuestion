@@ -37,6 +37,7 @@ type Feedback = {
 };
 
 const dailyFreeLimit = 3;
+const betaFree = true;
 const maxCanvasSide = 2200;
 const usageKey = "only-question-usage";
 const feedbackKey = "only-question-feedback";
@@ -88,8 +89,8 @@ const sliders: Array<{
 const plans = [
   {
     name: "무료",
-    price: "하루 3장",
-    description: "가끔 쓰는 학생용. 사진은 서버에 저장하지 않습니다.",
+    price: "베타 기간 무료",
+    description: "정식 출시 전까지 제한 없이 사용합니다. 사진은 서버에 저장하지 않습니다.",
     action: "무료로 쓰기",
   },
   {
@@ -131,7 +132,8 @@ export default function App() {
   const jobRef = useRef(0);
 
   const remainingFree = Math.max(0, dailyFreeLimit - usage.freeUsed);
-  const hasUsage = usage.unlimited || remainingFree > 0 || usage.credits > 0;
+  const hasUsage =
+    betaFree || usage.unlimited || remainingFree > 0 || usage.credits > 0;
 
   useEffect(() => {
     saveUsage(usage);
@@ -177,6 +179,11 @@ export default function App() {
   }, [source, settings]);
 
   const consumeOneUse = () => {
+    if (betaFree) {
+      setUsage((current) => ({ ...current, freeUsed: current.freeUsed + 1 }));
+      return true;
+    }
+
     if (usage.unlimited) {
       return true;
     }
@@ -352,32 +359,36 @@ export default function App() {
       <header className="topbar">
         <div>
           <h1>문제만</h1>
-          <p>{fileName || "하루 3장은 무료. 사진은 서버에 저장하지 않습니다."}</p>
+          <p>{fileName || "베타 기간 무료. 사진은 서버에 저장하지 않습니다."}</p>
         </div>
         <button
           className="ghost-button"
           type="button"
           onClick={() => setShowUpgrade(true)}
         >
-          이용권 구매
+          정식 출시 가격
         </button>
       </header>
 
       <section className="usage-bar" aria-label="사용량">
         <div>
           <strong>
-            {usage.unlimited
+            {betaFree
+              ? "베타 기간 무료 사용 중"
+              : usage.unlimited
               ? "월 무제한 사용 중"
               : `오늘 무료 3장 중 ${remainingFree}장 남음`}
           </strong>
           <span>
-            {usage.unlimited
+            {betaFree
+              ? `정식 출시 전까지 제한 없음 · 사용 기록 ${usage.freeUsed}장`
+              : usage.unlimited
               ? "시험 기간에도 계속 사용 가능"
               : `추가 이용권 ${usage.credits}장`}
           </span>
         </div>
         <button type="button" onClick={() => setShowUpgrade(true)}>
-          업그레이드
+          출시 가격 보기
         </button>
       </section>
 
@@ -419,7 +430,7 @@ export default function App() {
               type="button"
               onClick={() => setShowUpgrade(true)}
             >
-              이용권 구매
+              정식 출시 가격
             </button>
           )}
         </section>
@@ -556,8 +567,8 @@ function UpgradeModal({
       <section className="pricing-modal">
         <div className="modal-head">
           <div>
-            <h2>하루 3장은 무료</h2>
-            <p>시험지 정리 오래 걸리면 그냥 500원으로 끝내세요.</p>
+            <h2>정식 출시 예정 가격</h2>
+            <p>지금은 베타 기간이라 무료입니다. 정식 출시 후 가격만 미리 공개합니다.</p>
           </div>
           <button type="button" onClick={onClose} aria-label="닫기">
             닫기
@@ -578,9 +589,7 @@ function UpgradeModal({
                     return;
                   }
 
-                  window.location.href = `mailto:onlyquestion@example.com?subject=${encodeURIComponent(
-                    `[문제만] ${plan.name} 문의`,
-                  )}`;
+                  onClose();
                 }}
               >
                 {plan.action}
@@ -589,22 +598,8 @@ function UpgradeModal({
           ))}
         </div>
 
-        <div className="manual-pay">
-          <strong>수동 결제 MVP</strong>
-          <p>
-            토스/카카오페이 송금 후 오픈채팅 또는 이메일로 인증하면 이용권 코드를
-            지급합니다.
-          </p>
-          <div className="contact-row">
-            <a href="https://open.kakao.com/o/samples" target="_blank" rel="noreferrer">
-              오픈채팅 문의
-            </a>
-            <a href="mailto:onlyquestion@example.com">이메일 문의</a>
-          </div>
-        </div>
-
         <div className="ticket-form">
-          <label htmlFor="ticket-code">이용권 코드 입력</label>
+          <label htmlFor="ticket-code">베타 테스트 코드 입력</label>
           <div>
             <input
               id="ticket-code"
@@ -616,7 +611,7 @@ function UpgradeModal({
               적용
             </button>
           </div>
-          <p>테스트: CLEAN10 = 10장 추가, PRO1900 = 무제한</p>
+          <p>베타 중 결제 없음. 테스트: CLEAN10 = 10장 추가, PRO1900 = 무제한</p>
         </div>
       </section>
     </div>
