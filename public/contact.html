@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="문제만 문의 페이지. 제휴, 학원 사용, 오류 제보, 기능 제안을 Formspree 문의 폼으로 보낼 수 있습니다."
+    />
+    <title>문의 - 문제만</title>
+    <style>
+      body { margin: 0; background: #eef1f4; color: #1f2933; font-family: system-ui, -apple-system, "Segoe UI", sans-serif; line-height: 1.7; }
+      main { width: min(760px, 100%); margin: 0 auto; padding: 28px 16px 48px; }
+      a { color: #0f6769; font-weight: 700; }
+      section, form { background: #fff; border: 1px solid #d4dde6; border-radius: 8px; padding: 20px; margin-top: 14px; }
+      h1, h2 { color: #121820; line-height: 1.25; letter-spacing: 0; }
+      label { display: grid; gap: 7px; margin-bottom: 12px; font-weight: 700; }
+      input, textarea { width: 100%; border: 1px solid #cbd5df; border-radius: 6px; padding: 10px; font: inherit; box-sizing: border-box; }
+      button { min-height: 42px; border: 0; border-radius: 6px; background: #0f8b8d; color: #fff; font-weight: 800; padding: 0 16px; cursor: pointer; }
+      nav { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 22px; }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>문의</h1>
+      <section>
+        <h2>어떤 문의를 보낼 수 있나요?</h2>
+        <p>
+          제휴, 학원/과외 대량 사용, 오류 제보, 기능 제안, 개인정보 문의를 보낼 수 있습니다.
+          시험지 이미지는 문의 폼에 첨부하지 말고 상황 설명만 적어주세요.
+        </p>
+      </section>
+      <form action="https://formspree.io/f/xvzngblv" method="POST">
+        <input type="hidden" name="_subject" value="[문제만] 사이트 문의" />
+        <input type="hidden" name="service" value="문제만" />
+        <label>
+          이름
+          <input name="name" placeholder="홍길동" />
+        </label>
+        <label>
+          이메일
+          <input type="email" name="email" placeholder="name@example.com" required />
+        </label>
+        <label>
+          문의 내용
+          <textarea name="message" rows="6" placeholder="문의 내용을 적어주세요." required></textarea>
+        </label>
+        <button type="submit">문의 보내기</button>
+      </form>
+      <nav>
+        <a href="./">앱으로 돌아가기</a>
+        <a href="about.html">서비스 소개</a>
+        <a href="guide.html">사용 가이드</a>
+        <a href="privacy.html">개인정보 처리방침</a>
+        <a href="terms.html">이용약관</a>
+      </nav>
+    </main>
+  </body>
+</html>

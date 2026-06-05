@@ -121,6 +121,14 @@ const plans = [
   },
 ];
 
+const infoLinks = [
+  { href: "about.html", label: "서비스 소개" },
+  { href: "guide.html", label: "사용 가이드" },
+  { href: "privacy.html", label: "개인정보 처리방침" },
+  { href: "terms.html", label: "이용약관" },
+  { href: "contact.html", label: "문의" },
+];
+
 export default function App() {
   const [source, setSource] = useState<LoadedImage | null>(null);
   const [originalUrl, setOriginalUrl] = useState("");
@@ -547,6 +555,40 @@ export default function App() {
           {feedbackMessage && <p className="notice-text">{feedbackMessage}</p>}
         </aside>
       </main>
+
+      <section className="quality-section" aria-label="문제만 서비스 정보">
+        <article>
+          <h2>시험지 사진을 바로 정리하는 무료 베타 도구</h2>
+          <p>
+            문제만은 학생, 과외쌤, 학원에서 찍어둔 문제지 사진을 브라우저 안에서
+            보정합니다. 밝은 종이 배경은 흰색에 가깝게 만들고, 어두운 인쇄 글자는
+            진하게 남기며, 형광펜과 색펜 흔적은 슬라이더로 줄일 수 있습니다.
+          </p>
+        </article>
+        <article>
+          <h2>사진은 서버에 저장하지 않습니다</h2>
+          <p>
+            이미지는 사용자의 브라우저 Canvas에서 처리됩니다. 현재 베타 버전은
+            로그인, 데이터베이스, 서버 업로드 없이 동작하므로 시험지 이미지가
+            서비스 서버에 보관되지 않습니다.
+          </p>
+        </article>
+        <article>
+          <h2>승인 가능한 품질을 위한 실제 콘텐츠</h2>
+          <p>
+            이 사이트는 실제 사용 가능한 도구, 명확한 사용법, 개인정보 안내,
+            문의 경로를 함께 제공합니다. 검은 펜 필기와 인쇄 글자는 완벽히
+            분리하기 어렵지만, 수동 조절로 결과를 개선할 수 있습니다.
+          </p>
+        </article>
+        <nav className="footer-links" aria-label="사이트 정보">
+          {infoLinks.map((link) => (
+            <a href={link.href} key={link.href}>
+              {link.label}
+            </a>
+          ))}
+        </nav>
+      </section>
 
       {showUpgrade && (
         <UpgradeModal
