@@ -30,7 +30,7 @@ jobs:
       - name: Configure Pages
         uses: actions/configure-pages@v5
       - name: Build
-        run: npm run build -- --mode github-pages
+        run: npm run build:pages
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3
         with:

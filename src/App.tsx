@@ -36,11 +36,19 @@ type Feedback = {
   message: string;
 };
 
+type InquiryForm = {
+  name: string;
+  email: string;
+  organization: string;
+  message: string;
+};
+
 const dailyFreeLimit = 3;
 const betaFree = true;
 const maxCanvasSide = 2200;
 const usageKey = "only-question-usage";
 const feedbackKey = "only-question-feedback";
+const formspreeEndpoint = "https://formspree.io/f/xvzngblv";
 
 const defaultSettings: ImageSettings = {
   background: 64,
@@ -128,6 +136,15 @@ export default function App() {
   const [showFeedback, setShowFeedback] = useState(false);
   const [feedback, setFeedback] = useState("");
   const [feedbackMessage, setFeedbackMessage] = useState("");
+  const [showInquiry, setShowInquiry] = useState(false);
+  const [inquiry, setInquiry] = useState<InquiryForm>({
+    name: "",
+    email: "",
+    organization: "",
+    message: "",
+  });
+  const [inquiryStatus, setInquiryStatus] = useState("");
+  const [isSubmittingInquiry, setIsSubmittingInquiry] = useState(false);
   const objectUrlRef = useRef("");
   const jobRef = useRef(0);
 
@@ -308,6 +325,49 @@ export default function App() {
     setShowFeedback(false);
   };
 
+  const updateInquiry = (key: keyof InquiryForm, value: string) => {
+    setInquiry((current) => ({ ...current, [key]: value }));
+  };
+
+  const submitInquiry = async () => {
+    if (!inquiry.email.trim() || !inquiry.message.trim()) {
+      setInquiryStatus("연락처와 문의 내용을 입력해주세요.");
+      return;
+    }
+
+    setIsSubmittingInquiry(true);
+    setInquiryStatus("");
+
+    try {
+      const response = await fetch(formspreeEndpoint, {
+        method: "POST",
+        headers: {
+          Accept: "application/json",
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          _subject: "[문제만] 제휴/학원 문의",
+          name: inquiry.name,
+          email: inquiry.email,
+          organization: inquiry.organization,
+          message: inquiry.message,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Inquiry failed.");
+      }
+
+      setInquiry({ name: "", email: "", organization: "", message: "" });
+      setInquiryStatus("문의가 접수됐습니다. 확인 후 연락드릴게요.");
+      setShowInquiry(false);
+    } catch {
+      setInquiryStatus("전송 실패. 잠시 후 다시 시도해주세요.");
+    } finally {
+      setIsSubmittingInquiry(false);
+    }
+  };
+
   const downloadPng = () => {
     if (!resultUrl) {
       return;
@@ -361,13 +421,22 @@ export default function App() {
           <h1>문제만</h1>
           <p>{fileName || "베타 기간 무료. 사진은 서버에 저장하지 않습니다."}</p>
         </div>
-        <button
-          className="ghost-button"
-          type="button"
-          onClick={() => setShowUpgrade(true)}
-        >
-          정식 출시 가격
-        </button>
+        <div className="topbar-actions">
+          <button
+            className="ghost-button"
+            type="button"
+            onClick={() => setShowUpgrade(true)}
+          >
+            정식 출시 가격
+          </button>
+          <button
+            className="ghost-button"
+            type="button"
+            onClick={() => setShowInquiry(true)}
+          >
+            제휴 문의
+          </button>
+        </div>
       </header>
 
       <section className="usage-bar" aria-label="사용량">
@@ -393,6 +462,7 @@ export default function App() {
       </section>
 
       {ticketMessage && <p className="notice-text">{ticketMessage}</p>}
+      {inquiryStatus && <p className="notice-text">{inquiryStatus}</p>}
       {error && <p className="error-text">{error}</p>}
 
       <main className="workspace">
@@ -523,7 +593,22 @@ export default function App() {
           ticketCode={ticketCode}
           onTicketCodeChange={setTicketCode}
           onApplyTicketCode={applyTicketCode}
+          onOpenInquiry={() => {
+            setShowUpgrade(false);
+            setShowInquiry(true);
+          }}
           onClose={() => setShowUpgrade(false)}
+        />
+      )}
+
+      {showInquiry && (
+        <InquiryModal
+          inquiry={inquiry}
+          status={inquiryStatus}
+          isSubmitting={isSubmittingInquiry}
+          onChange={updateInquiry}
+          onSubmit={submitInquiry}
+          onClose={() => setShowInquiry(false)}
         />
       )}
     </div>
@@ -555,11 +640,13 @@ function UpgradeModal({
   ticketCode,
   onTicketCodeChange,
   onApplyTicketCode,
+  onOpenInquiry,
   onClose,
 }: {
   ticketCode: string;
   onTicketCodeChange: (value: string) => void;
   onApplyTicketCode: () => void;
+  onOpenInquiry: () => void;
   onClose: () => void;
 }) {
   return (
@@ -589,6 +676,11 @@ function UpgradeModal({
                     return;
                   }
 
+                  if (plan.name === "학원/과외쌤용") {
+                    onOpenInquiry();
+                    return;
+                  }
+
                   onClose();
                 }}
               >
@@ -612,6 +704,79 @@ function UpgradeModal({
             </button>
           </div>
           <p>베타 중 결제 없음. 테스트: CLEAN10 = 10장 추가, PRO1900 = 무제한</p>
+        </div>
+      </section>
+    </div>
+  );
+}
+
+function InquiryModal({
+  inquiry,
+  status,
+  isSubmitting,
+  onChange,
+  onSubmit,
+  onClose,
+}: {
+  inquiry: InquiryForm;
+  status: string;
+  isSubmitting: boolean;
+  onChange: (key: keyof InquiryForm, value: string) => void;
+  onSubmit: () => void;
+  onClose: () => void;
+}) {
+  return (
+    <div className="modal-backdrop" role="dialog" aria-modal="true">
+      <section className="pricing-modal inquiry-modal">
+        <div className="modal-head">
+          <div>
+            <h2>제휴 문의</h2>
+            <p>학원, 과외쌤, 교육팀 제휴나 대량 사용 문의를 남겨주세요.</p>
+          </div>
+          <button type="button" onClick={onClose} aria-label="닫기">
+            닫기
+          </button>
+        </div>
+
+        <div className="inquiry-form">
+          <label>
+            이름
+            <input
+              value={inquiry.name}
+              onChange={(event) => onChange("name", event.target.value)}
+              placeholder="홍길동"
+            />
+          </label>
+          <label>
+            연락받을 이메일
+            <input
+              type="email"
+              value={inquiry.email}
+              onChange={(event) => onChange("email", event.target.value)}
+              placeholder="name@example.com"
+            />
+          </label>
+          <label>
+            기관/학원명
+            <input
+              value={inquiry.organization}
+              onChange={(event) => onChange("organization", event.target.value)}
+              placeholder="문제만학원"
+            />
+          </label>
+          <label>
+            문의 내용
+            <textarea
+              value={inquiry.message}
+              onChange={(event) => onChange("message", event.target.value)}
+              placeholder="예: 학원에서 학생 50명 정도가 쓸 예정입니다."
+              rows={5}
+            />
+          </label>
+          {status && <p className="notice-text">{status}</p>}
+          <button type="button" onClick={onSubmit} disabled={isSubmitting}>
+            {isSubmitting ? "전송 중" : "문의 보내기"}
+          </button>
         </div>
       </section>
     </div>

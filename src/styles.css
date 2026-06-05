@@ -19,7 +19,8 @@ body {
 }
 
 button,
-input {
+input,
+textarea {
   font: inherit;
 }
 
@@ -62,12 +63,19 @@ a {
   word-break: break-word;
 }
 
+.topbar-actions {
+  display: flex;
+  flex: 0 0 auto;
+  gap: 8px;
+}
+
 .ghost-button,
 .usage-bar button,
 .buy-button,
 .feedback-button,
 .feedback-box button,
 .ticket-form button,
+.inquiry-form button,
 .plan-card button,
 .contact-row a,
 .modal-head button {
@@ -370,7 +378,9 @@ button:disabled {
 }
 
 .feedback-box textarea,
-.ticket-form input {
+.ticket-form input,
+.inquiry-form input,
+.inquiry-form textarea {
   width: 100%;
   border: 1px solid #cbd5df;
   border-radius: 6px;
@@ -378,7 +388,8 @@ button:disabled {
   background: #ffffff;
 }
 
-.feedback-box textarea {
+.feedback-box textarea,
+.inquiry-form textarea {
   min-height: 92px;
   padding: 10px;
   resize: vertical;
@@ -537,6 +548,38 @@ button:disabled {
   color: #ffffff;
 }
 
+.inquiry-modal {
+  width: min(560px, 100%);
+}
+
+.inquiry-form {
+  display: grid;
+  gap: 12px;
+  padding: 18px;
+}
+
+.inquiry-form label {
+  display: grid;
+  gap: 7px;
+  color: #26323f;
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.inquiry-form input {
+  min-height: 42px;
+  padding: 0 11px;
+}
+
+.inquiry-form textarea {
+  line-height: 1.5;
+}
+
+.inquiry-form button {
+  background: #0f8b8d;
+  color: #ffffff;
+}
+
 @media (max-width: 1100px) {
   .workspace {
     grid-template-columns: 240px minmax(0, 1fr);
@@ -587,6 +630,11 @@ button:disabled {
   .usage-bar button,
   .ghost-button {
     width: 100%;
+  }
+
+  .topbar-actions {
+    width: 100%;
+    flex-direction: column;
   }
 
   .plan-grid {
