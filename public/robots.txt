@@ -1,2 +1,4 @@
 User-agent: *
 Allow: /
+
+Sitemap: https://onlyquestion.pages.dev/sitemap.xml

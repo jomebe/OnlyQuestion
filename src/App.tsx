@@ -10,13 +10,6 @@ type ImageSettings = {
   grayscale: boolean;
 };
 
-type UsageState = {
-  date: string;
-  freeUsed: number;
-  credits: number;
-  unlimited: boolean;
-};
-
 type LoadedImage = {
   image: HTMLImageElement;
   width: number;
@@ -43,10 +36,7 @@ type InquiryForm = {
   message: string;
 };
 
-const dailyFreeLimit = 3;
-const betaFree = true;
 const maxCanvasSide = 2200;
-const usageKey = "only-question-usage";
 const feedbackKey = "only-question-feedback";
 const formspreeEndpoint = "https://formspree.io/f/xvzngblv";
 
@@ -94,36 +84,12 @@ const sliders: Array<{
   },
 ];
 
-const plans = [
-  {
-    name: "무료",
-    price: "베타 기간 무료",
-    description: "정식 출시 전까지 제한 없이 사용합니다. 사진은 서버에 저장하지 않습니다.",
-    action: "무료로 쓰기",
-  },
-  {
-    name: "10장 이용권",
-    price: "500원",
-    description: "시험지 정리 오래 걸리면 그냥 500원으로 끝내세요.",
-    action: "10장 구매",
-  },
-  {
-    name: "월 무제한",
-    price: "1,900원",
-    description: "시험 기간에 계속 쓰는 학생용.",
-    action: "무제한 문의",
-  },
-  {
-    name: "학원/과외쌤용",
-    price: "월 9,900원",
-    description: "대량 정리, 여러 학생 자료 정리 문의.",
-    action: "학원용 문의",
-  },
-];
-
 const infoLinks = [
   { href: "about.html", label: "서비스 소개" },
   { href: "guide.html", label: "사용 가이드" },
+  { href: "exam-photo-guide.html", label: "시험지 촬영법" },
+  { href: "scan-settings-guide.html", label: "보정 설정법" },
+  { href: "study-workflow.html", label: "학습 활용법" },
   { href: "privacy.html", label: "개인정보 처리방침" },
   { href: "terms.html", label: "이용약관" },
   { href: "contact.html", label: "문의" },
@@ -134,13 +100,9 @@ export default function App() {
   const [originalUrl, setOriginalUrl] = useState("");
   const [resultUrl, setResultUrl] = useState("");
   const [settings, setSettings] = useState<ImageSettings>(defaultSettings);
-  const [usage, setUsage] = useState<UsageState>(() => loadUsage());
   const [fileName, setFileName] = useState("");
   const [error, setError] = useState("");
   const [isProcessing, setIsProcessing] = useState(false);
-  const [showUpgrade, setShowUpgrade] = useState(false);
-  const [ticketCode, setTicketCode] = useState("");
-  const [ticketMessage, setTicketMessage] = useState("");
   const [showFeedback, setShowFeedback] = useState(false);
   const [feedback, setFeedback] = useState("");
   const [feedbackMessage, setFeedbackMessage] = useState("");
@@ -154,14 +116,6 @@ export default function App() {
   const [inquiryStatus, setInquiryStatus] = useState("");
   const objectUrlRef = useRef("");
   const jobRef = useRef(0);
-
-  const remainingFree = Math.max(0, dailyFreeLimit - usage.freeUsed);
-  const hasUsage =
-    betaFree || usage.unlimited || remainingFree > 0 || usage.credits > 0;
-
-  useEffect(() => {
-    saveUsage(usage);
-  }, [usage]);
 
   useEffect(() => {
     return () => {
@@ -202,34 +156,6 @@ export default function App() {
     return () => window.cancelAnimationFrame(frame);
   }, [source, settings]);
 
-  const consumeOneUse = () => {
-    if (betaFree) {
-      setUsage((current) => ({ ...current, freeUsed: current.freeUsed + 1 }));
-      return true;
-    }
-
-    if (usage.unlimited) {
-      return true;
-    }
-
-    if (remainingFree > 0) {
-      setUsage((current) => ({ ...current, freeUsed: current.freeUsed + 1 }));
-      if (remainingFree === 1 && usage.credits === 0) {
-        setShowUpgrade(true);
-      }
-      return true;
-    }
-
-    if (usage.credits > 0) {
-      setUsage((current) => ({ ...current, credits: current.credits - 1 }));
-      return true;
-    }
-
-    setShowUpgrade(true);
-    setError("오늘 무료 3장을 다 썼습니다. 이용권을 구매하거나 코드를 입력하세요.");
-    return false;
-  };
-
   const loadFile = (file: File | null) => {
     if (!file) {
       return;
@@ -244,11 +170,6 @@ export default function App() {
     const image = new Image();
 
     image.onload = () => {
-      if (!consumeOneUse()) {
-        URL.revokeObjectURL(objectUrl);
-        return;
-      }
-
       if (objectUrlRef.current) {
         URL.revokeObjectURL(objectUrlRef.current);
       }
@@ -288,28 +209,6 @@ export default function App() {
       ...current,
       [key]: value,
     }));
-  };
-
-  const applyTicketCode = () => {
-    const code = ticketCode.trim().toUpperCase();
-
-    if (code === "CLEAN10") {
-      setUsage((current) => ({ ...current, credits: current.credits + 10 }));
-      setTicketCode("");
-      setTicketMessage("10장 이용권이 추가됐습니다.");
-      setShowUpgrade(false);
-      return;
-    }
-
-    if (code === "PRO1900") {
-      setUsage((current) => ({ ...current, unlimited: true }));
-      setTicketCode("");
-      setTicketMessage("월 무제한 모드가 켜졌습니다.");
-      setShowUpgrade(false);
-      return;
-    }
-
-    setTicketMessage("코드를 다시 확인하세요. 테스트 코드: CLEAN10, PRO1900");
   };
 
   const submitFeedback = () => {
@@ -390,13 +289,9 @@ export default function App() {
           <p>{fileName || "베타 기간 무료. 사진은 서버에 저장하지 않습니다."}</p>
         </div>
         <div className="topbar-actions">
-          <button
-            className="ghost-button"
-            type="button"
-            onClick={() => setShowUpgrade(true)}
-          >
-            정식 출시 가격
-          </button>
+          <a className="ghost-button" href="guide.html">
+            사용 가이드
+          </a>
           <button
             className="ghost-button"
             type="button"
@@ -409,27 +304,12 @@ export default function App() {
 
       <section className="usage-bar" aria-label="사용량">
         <div>
-          <strong>
-            {betaFree
-              ? "베타 기간 무료 사용 중"
-              : usage.unlimited
-              ? "월 무제한 사용 중"
-              : `오늘 무료 3장 중 ${remainingFree}장 남음`}
-          </strong>
-          <span>
-            {betaFree
-              ? `정식 출시 전까지 제한 없음 · 사용 기록 ${usage.freeUsed}장`
-              : usage.unlimited
-              ? "시험 기간에도 계속 사용 가능"
-              : `추가 이용권 ${usage.credits}장`}
-          </span>
+          <strong>무료 베타 · 사용량 제한 없음</strong>
+          <span>사진은 브라우저에서만 처리되며 서버에 저장되지 않습니다.</span>
         </div>
-        <button type="button" onClick={() => setShowUpgrade(true)}>
-          출시 가격 보기
-        </button>
+        <a href="privacy.html">개인정보 처리 방식</a>
       </section>
 
-      {ticketMessage && <p className="notice-text">{ticketMessage}</p>}
       {inquiryStatus && <p className="notice-text">{inquiryStatus}</p>}
       {error && <p className="error-text">{error}</p>}
 
@@ -462,15 +342,6 @@ export default function App() {
           <p className="helper-text">
             검은 펜 필기는 일부 남을 수 있음
           </p>
-          {!hasUsage && (
-            <button
-              className="buy-button"
-              type="button"
-              onClick={() => setShowUpgrade(true)}
-            >
-              정식 출시 가격
-            </button>
-          )}
         </section>
 
         <section className="preview-grid" aria-label="이미지 미리보기">
@@ -574,11 +445,27 @@ export default function App() {
           </p>
         </article>
         <article>
-          <h2>승인 가능한 품질을 위한 실제 콘텐츠</h2>
+          <h2>사진 상태에 맞는 권장 설정</h2>
           <p>
-            이 사이트는 실제 사용 가능한 도구, 명확한 사용법, 개인정보 안내,
-            문의 경로를 함께 제공합니다. 검은 펜 필기와 인쇄 글자는 완벽히
-            분리하기 어렵지만, 수동 조절로 결과를 개선할 수 있습니다.
+            종이가 누렇게 보이면 배경 제거와 밝기를 올리고, 글자가 흐리면 대비를
+            올려보세요. 형광펜과 색펜은 각각 별도 슬라이더로 조절할 수 있습니다.
+            흑백 변환은 복사하거나 다시 풀 문제지를 만들 때 유용합니다.
+          </p>
+        </article>
+        <article>
+          <h2>촬영할 때 결과를 좋아지게 하는 방법</h2>
+          <p>
+            시험지를 평평하게 펴고 카메라를 종이와 평행하게 맞추세요. 창가처럼
+            빛이 고르게 들어오는 곳에서 찍고, 손이나 휴대폰 그림자가 문제 위에
+            생기지 않게 하면 자동 보정 결과가 더 안정적입니다.
+          </p>
+        </article>
+        <article>
+          <h2>검은 손글씨가 남는 이유</h2>
+          <p>
+            인쇄된 문제 글자와 검은 펜 필기는 픽셀 색이 비슷해서 브라우저 보정만으로
+            완벽히 분리하기 어렵습니다. 검은 필기가 많은 사진은 대비를 조금 낮추고
+            흑백 변환 전후를 비교해 더 읽기 좋은 결과를 선택하세요.
           </p>
         </article>
         <nav className="footer-links" aria-label="사이트 정보">
@@ -589,19 +476,6 @@ export default function App() {
           ))}
         </nav>
       </section>
-
-      {showUpgrade && (
-        <UpgradeModal
-          ticketCode={ticketCode}
-          onTicketCodeChange={setTicketCode}
-          onApplyTicketCode={applyTicketCode}
-          onOpenInquiry={() => {
-            setShowUpgrade(false);
-            setShowInquiry(true);
-          }}
-          onClose={() => setShowUpgrade(false)}
-        />
-      )}
 
       {showInquiry && (
         <InquiryModal
@@ -633,80 +507,6 @@ function PreviewPanel({
         )}
       </div>
     </article>
-  );
-}
-
-function UpgradeModal({
-  ticketCode,
-  onTicketCodeChange,
-  onApplyTicketCode,
-  onOpenInquiry,
-  onClose,
-}: {
-  ticketCode: string;
-  onTicketCodeChange: (value: string) => void;
-  onApplyTicketCode: () => void;
-  onOpenInquiry: () => void;
-  onClose: () => void;
-}) {
-  return (
-    <div className="modal-backdrop" role="dialog" aria-modal="true">
-      <section className="pricing-modal">
-        <div className="modal-head">
-          <div>
-            <h2>정식 출시 예정 가격</h2>
-            <p>지금은 베타 기간이라 무료입니다. 정식 출시 후 가격만 미리 공개합니다.</p>
-          </div>
-          <button type="button" onClick={onClose} aria-label="닫기">
-            닫기
-          </button>
-        </div>
-
-        <div className="plan-grid">
-          {plans.map((plan) => (
-            <article className="plan-card" key={plan.name}>
-              <strong>{plan.name}</strong>
-              <b>{plan.price}</b>
-              <p>{plan.description}</p>
-              <button
-                type="button"
-                onClick={() => {
-                  if (plan.name === "무료") {
-                    onClose();
-                    return;
-                  }
-
-                  if (plan.name === "학원/과외쌤용") {
-                    onOpenInquiry();
-                    return;
-                  }
-
-                  onClose();
-                }}
-              >
-                {plan.action}
-              </button>
-            </article>
-          ))}
-        </div>
-
-        <div className="ticket-form">
-          <label htmlFor="ticket-code">베타 테스트 코드 입력</label>
-          <div>
-            <input
-              id="ticket-code"
-              value={ticketCode}
-              onChange={(event) => onTicketCodeChange(event.target.value)}
-              placeholder="CLEAN10 또는 PRO1900"
-            />
-            <button type="button" onClick={onApplyTicketCode}>
-              적용
-            </button>
-          </div>
-          <p>베타 중 결제 없음. 테스트: CLEAN10 = 10장 추가, PRO1900 = 무제한</p>
-        </div>
-      </section>
-    </div>
   );
 }
 
@@ -952,37 +752,6 @@ function applySimpleAdaptiveThreshold(
   }
 }
 
-function loadUsage(): UsageState {
-  const today = getTodayKey();
-  const fallback: UsageState = {
-    date: today,
-    freeUsed: 0,
-    credits: 0,
-    unlimited: false,
-  };
-
-  try {
-    const saved = localStorage.getItem(usageKey);
-    if (!saved) {
-      return fallback;
-    }
-
-    const parsed = JSON.parse(saved) as Partial<UsageState>;
-    return {
-      date: today,
-      freeUsed: parsed.date === today ? Number(parsed.freeUsed) || 0 : 0,
-      credits: Math.max(0, Number(parsed.credits) || 0),
-      unlimited: Boolean(parsed.unlimited),
-    };
-  } catch {
-    return fallback;
-  }
-}
-
-function saveUsage(usage: UsageState) {
-  localStorage.setItem(usageKey, JSON.stringify(usage));
-}
-
 function loadFeedback(): Feedback[] {
   try {
     const saved = localStorage.getItem(feedbackKey);
@@ -990,10 +759,6 @@ function loadFeedback(): Feedback[] {
   } catch {
     return [];
   }
-}
-
-function getTodayKey() {
-  return new Date().toISOString().slice(0, 10);
 }
 
 function getLuminance(red: number, green: number, blue: number) {
