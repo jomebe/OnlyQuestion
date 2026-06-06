@@ -1,5 +1,7 @@
 import { ChangeEvent, DragEvent, useEffect, useRef, useState } from "react";
 import { jsPDF } from "jspdf";
+import type { User } from "@supabase/supabase-js";
+import { supabase } from "./supabase";
 
 type ImageSettings = {
   background: number;
@@ -114,8 +116,28 @@ export default function App() {
     message: "",
   });
   const [inquiryStatus, setInquiryStatus] = useState("");
+  const [user, setUser] = useState<User | null>(null);
+  const [authLoading, setAuthLoading] = useState(true);
+  const [authError, setAuthError] = useState("");
   const objectUrlRef = useRef("");
   const jobRef = useRef(0);
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data }) => {
+      setUser(data.session?.user ?? null);
+      setAuthLoading(false);
+    });
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user ?? null);
+      setAuthLoading(false);
+      setAuthError("");
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
 
   useEffect(() => {
     return () => {
@@ -235,6 +257,31 @@ export default function App() {
     setInquiry((current) => ({ ...current, [key]: value }));
   };
 
+  const signInWithGoogle = async () => {
+    setAuthError("");
+    setAuthLoading(true);
+    const { error: signInError } = await supabase.auth.signInWithOAuth({
+      provider: "google",
+      options: {
+        redirectTo: new URL(import.meta.env.BASE_URL, window.location.origin).toString(),
+      },
+    });
+
+    if (signInError) {
+      setAuthError("Google 로그인을 시작하지 못했습니다.");
+      setAuthLoading(false);
+    }
+  };
+
+  const signOut = async () => {
+    setAuthLoading(true);
+    const { error: signOutError } = await supabase.auth.signOut();
+    if (signOutError) {
+      setAuthError("로그아웃하지 못했습니다.");
+    }
+    setAuthLoading(false);
+  };
+
   const downloadPng = () => {
     if (!resultUrl) {
       return;
@@ -289,6 +336,31 @@ export default function App() {
           <p>{fileName || "베타 기간 무료. 사진은 서버에 저장하지 않습니다."}</p>
         </div>
         <div className="topbar-actions">
+          {user ? (
+            <div className="account-menu">
+              {user.user_metadata.avatar_url && (
+                <img
+                  src={user.user_metadata.avatar_url}
+                  alt=""
+                  referrerPolicy="no-referrer"
+                />
+              )}
+              <span>{user.user_metadata.full_name || user.email}</span>
+              <button type="button" onClick={signOut} disabled={authLoading}>
+                로그아웃
+              </button>
+            </div>
+          ) : (
+            <button
+              className="google-button"
+              type="button"
+              onClick={signInWithGoogle}
+              disabled={authLoading}
+            >
+              <span aria-hidden="true">G</span>
+              Google 로그인
+            </button>
+          )}
           <a className="ghost-button" href="guide.html">
             사용 가이드
           </a>
@@ -301,6 +373,8 @@ export default function App() {
           </button>
         </div>
       </header>
+
+      {authError && <p className="error-text">{authError}</p>}
 
       <section className="usage-bar" aria-label="사용량">
         <div>
@@ -440,8 +514,8 @@ export default function App() {
           <h2>사진은 서버에 저장하지 않습니다</h2>
           <p>
             이미지는 사용자의 브라우저 Canvas에서 처리됩니다. 현재 베타 버전은
-            로그인, 데이터베이스, 서버 업로드 없이 동작하므로 시험지 이미지가
-            서비스 서버에 보관되지 않습니다.
+            시험지 이미지를 서버로 업로드하지 않으므로 로그인 여부와 관계없이
+            서비스 서버에 이미지가 보관되지 않습니다.
           </p>
         </article>
         <article>

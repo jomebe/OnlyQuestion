@@ -66,9 +66,12 @@ a {
 .topbar-actions {
   display: flex;
   flex: 0 0 auto;
+  align-items: center;
   gap: 8px;
 }
 
+.google-button,
+.account-menu button,
 .ghost-button,
 .usage-bar a,
 .feedback-button,
@@ -79,6 +82,61 @@ a {
   border-radius: 6px;
   font-weight: 700;
   cursor: pointer;
+}
+
+.google-button {
+  display: inline-flex;
+  min-height: 40px;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  padding: 0 14px;
+  border: 1px solid #cbd5df;
+  background: #ffffff;
+  color: #26323f;
+}
+
+.google-button span {
+  display: grid;
+  width: 22px;
+  height: 22px;
+  place-items: center;
+  border-radius: 50%;
+  color: #4285f4;
+  font-weight: 900;
+}
+
+.account-menu {
+  display: flex;
+  min-height: 40px;
+  align-items: center;
+  gap: 8px;
+  padding-left: 8px;
+  border: 1px solid #cbd5df;
+  border-radius: 6px;
+  background: #ffffff;
+}
+
+.account-menu img {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+}
+
+.account-menu span {
+  max-width: 160px;
+  overflow: hidden;
+  color: #344256;
+  font-size: 13px;
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.account-menu button {
+  padding: 0 12px;
+  background: #eef1f4;
+  color: #344256;
 }
 
 .ghost-button {
@@ -579,6 +637,7 @@ button:disabled {
   }
 
   .usage-bar a,
+  .google-button,
   .ghost-button {
     width: 100%;
   }
@@ -586,6 +645,16 @@ button:disabled {
   .topbar-actions {
     width: 100%;
     flex-direction: column;
+  }
+
+  .account-menu {
+    width: 100%;
+    padding-left: 10px;
+  }
+
+  .account-menu span {
+    max-width: none;
+    flex: 1;
   }
 
   .quality-section {
