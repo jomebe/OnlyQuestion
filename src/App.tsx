@@ -1,4 +1,11 @@
-import { ChangeEvent, DragEvent, useEffect, useRef, useState } from "react";
+import {
+  ChangeEvent,
+  DragEvent,
+  ReactNode,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 import { jsPDF } from "jspdf";
 import type { User } from "@supabase/supabase-js";
 import { supabase } from "./supabase";
@@ -59,6 +66,35 @@ const autoSettings: ImageSettings = {
   colorPenRemoval: 72,
   grayscale: false,
 };
+
+const presets: Array<{
+  label: string;
+  settings: ImageSettings;
+}> = [
+  { label: "기본", settings: autoSettings },
+  {
+    label: "강하게",
+    settings: {
+      background: 88,
+      contrast: 68,
+      brightness: 12,
+      highlighterRemoval: 92,
+      colorPenRemoval: 82,
+      grayscale: false,
+    },
+  },
+  {
+    label: "글자 선명",
+    settings: {
+      background: 66,
+      contrast: 78,
+      brightness: 3,
+      highlighterRemoval: 72,
+      colorPenRemoval: 58,
+      grayscale: true,
+    },
+  },
+];
 
 const sliders: Array<{
   key: SliderKey;
@@ -331,9 +367,13 @@ export default function App() {
   return (
     <div className="app">
       <header className="topbar">
-        <div>
+        <div className="brand-copy">
           <h1>문제만</h1>
-          <p>{fileName || "베타 기간 무료. 사진은 서버에 저장하지 않습니다."}</p>
+          <strong>시험지 사진을 깔끔하게 정리하는 무료 도구</strong>
+          <p>
+            {fileName ||
+              "그림자, 누런 배경, 흐린 글자를 브라우저에서 바로 보정해요."}
+          </p>
         </div>
         <div className="topbar-actions">
           {user ? (
@@ -378,8 +418,8 @@ export default function App() {
 
       <section className="usage-bar" aria-label="사용량">
         <div>
-          <strong>무료 베타 · 사용량 제한 없음</strong>
-          <span>사진은 브라우저에서만 처리되며 서버에 저장되지 않습니다.</span>
+          <strong>모든 보정은 내 브라우저에서만 처리돼요</strong>
+          <span>사진은 서버로 업로드되지 않고 저장되지 않아요.</span>
         </div>
         <a href="privacy.html">개인정보 처리 방식</a>
       </section>
@@ -410,23 +450,86 @@ export default function App() {
             onClick={() => setSettings(autoSettings)}
             disabled={!source}
           >
-            자동 클린
+            자동으로 깨끗하게 만들기
           </button>
 
+          {!source && (
+            <p className="upload-hint">
+              사진을 올리면 자동 보정을 사용할 수 있어요.
+            </p>
+          )}
           <p className="helper-text">
             검은 펜 필기는 일부 남을 수 있음
           </p>
         </section>
 
         <section className="preview-grid" aria-label="이미지 미리보기">
-          <PreviewPanel title="원본" imageUrl={originalUrl} />
           <PreviewPanel
+            className="original-preview"
+            title="원본"
+            imageUrl={originalUrl}
+            emptyTitle="업로드한 사진이 여기에 표시돼요"
+            emptyDescription="사진을 올리면 원본과 보정 결과를 나란히 비교할 수 있어요."
+          />
+          <PreviewPanel
+            className="result-preview"
             title={isProcessing ? "결과 처리 중" : "결과"}
             imageUrl={resultUrl}
-          />
+            emptyTitle="보정된 이미지가 여기에 표시돼요"
+            emptyDescription="결과를 확인한 뒤 PNG 또는 PDF로 저장할 수 있어요."
+          >
+            <button
+              className="feedback-link"
+              type="button"
+              onClick={() => setShowFeedback((current) => !current)}
+              disabled={!resultUrl}
+            >
+              결과가 이상한가요? 제보하기
+            </button>
+            {showFeedback && (
+              <div className="feedback-box">
+                <textarea
+                  value={feedback}
+                  onChange={(event) => setFeedback(event.target.value)}
+                  placeholder="예: 형광펜이 덜 지워졌어요"
+                  rows={4}
+                />
+                <button type="button" onClick={submitFeedback}>
+                  피드백 보내기
+                </button>
+              </div>
+            )}
+            {feedbackMessage && <p className="notice-text">{feedbackMessage}</p>}
+          </PreviewPanel>
         </section>
 
         <aside className="control-pane" aria-label="조절 옵션">
+          <div className="download-row">
+            <button type="button" onClick={downloadPng} disabled={!resultUrl}>
+              PNG로 저장
+            </button>
+            <button type="button" onClick={downloadPdf} disabled={!resultUrl}>
+              PDF로 저장
+            </button>
+          </div>
+
+          <div className="preset-section">
+            <strong>빠른 보정</strong>
+            <div className="preset-row">
+              {presets.map((preset) => (
+                <button
+                  type="button"
+                  key={preset.label}
+                  onClick={() => setSettings(preset.settings)}
+                  disabled={!source}
+                >
+                  {preset.label}
+                </button>
+              ))}
+            </div>
+            <span>먼저 선택하고 아래에서 세부 조절하세요.</span>
+          </div>
+
           <div className="control-group">
             {sliders.map((slider) => (
               <label className="slider-row" key={slider.key}>
@@ -465,50 +568,18 @@ export default function App() {
               <span>흑백 변환</span>
             </label>
           </div>
-
-          <div className="download-row">
-            <button type="button" onClick={downloadPng} disabled={!resultUrl}>
-              PNG 저장
-            </button>
-            <button type="button" onClick={downloadPdf} disabled={!resultUrl}>
-              PDF 저장
-            </button>
-          </div>
-
-          <button
-            className="feedback-button"
-            type="button"
-            onClick={() => setShowFeedback((current) => !current)}
-            disabled={!resultUrl}
-          >
-            결과가 이상해요
-          </button>
-
-          {showFeedback && (
-            <div className="feedback-box">
-              <textarea
-                value={feedback}
-                onChange={(event) => setFeedback(event.target.value)}
-                placeholder="예: 형광펜이 덜 지워졌어요"
-                rows={4}
-              />
-              <button type="button" onClick={submitFeedback}>
-                피드백 보내기
-              </button>
-            </div>
-          )}
-          {feedbackMessage && <p className="notice-text">{feedbackMessage}</p>}
         </aside>
       </main>
 
       <section className="quality-section" aria-label="문제만 서비스 정보">
         <article>
-          <h2>시험지 사진을 바로 정리하는 무료 베타 도구</h2>
-          <p>
-            문제만은 학생, 과외쌤, 학원에서 찍어둔 문제지 사진을 브라우저 안에서
-            보정합니다. 밝은 종이 배경은 흰색에 가깝게 만들고, 어두운 인쇄 글자는
-            진하게 남기며, 형광펜과 색펜 흔적은 슬라이더로 줄일 수 있습니다.
-          </p>
+          <h2>이런 사진에 좋아요</h2>
+          <ul>
+            <li>누렇게 찍힌 시험지 사진</li>
+            <li>그림자가 진 문제 사진</li>
+            <li>글자가 흐린 학원 프린트</li>
+            <li>배경이 지저분한 문제지</li>
+          </ul>
         </article>
         <article>
           <h2>사진은 서버에 저장하지 않습니다</h2>
@@ -564,22 +635,34 @@ export default function App() {
 }
 
 function PreviewPanel({
+  className,
   title,
   imageUrl,
+  emptyTitle,
+  emptyDescription,
+  children,
 }: {
+  className: string;
   title: string;
   imageUrl: string;
+  emptyTitle: string;
+  emptyDescription: string;
+  children?: ReactNode;
 }) {
   return (
-    <article className="preview-panel">
+    <article className={`preview-panel ${className}`}>
       <div className="preview-title">{title}</div>
       <div className="image-frame">
         {imageUrl ? (
           <img src={imageUrl} alt={`${title} 미리보기`} />
         ) : (
-          <span>이미지 없음</span>
+          <div className="empty-preview">
+            <strong>{emptyTitle}</strong>
+            <span>{emptyDescription}</span>
+          </div>
         )}
       </div>
+      {children && <div className="preview-actions">{children}</div>}
     </article>
   );
 }
