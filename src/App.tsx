@@ -45,9 +45,12 @@ type InquiryForm = {
   message: string;
 };
 
+type ThemeMode = "light" | "dark";
+
 const maxCanvasSide = 2200;
 const feedbackKey = "only-question-feedback";
 const formspreeEndpoint = "https://formspree.io/f/xvzngblv";
+const themeKey = "only-question-theme";
 
 const defaultSettings: ImageSettings = {
   background: 64,
@@ -137,6 +140,7 @@ const infoLinks = [
 ];
 
 export default function App() {
+  const [theme, setTheme] = useState<ThemeMode>(() => loadTheme());
   const [source, setSource] = useState<LoadedImage | null>(null);
   const [originalUrl, setOriginalUrl] = useState("");
   const [resultUrl, setResultUrl] = useState("");
@@ -161,6 +165,11 @@ export default function App() {
   const [authError, setAuthError] = useState("");
   const objectUrlRef = useRef("");
   const jobRef = useRef(0);
+
+  useEffect(() => {
+    document.documentElement.dataset.theme = theme;
+    localStorage.setItem(themeKey, theme);
+  }, [theme]);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
@@ -385,6 +394,16 @@ export default function App() {
           </div>
         </div>
         <div className="topbar-actions">
+          <button
+            className="theme-toggle"
+            type="button"
+            onClick={() =>
+              setTheme((current) => (current === "dark" ? "light" : "dark"))
+            }
+            aria-label="테마 변경"
+          >
+            {theme === "dark" ? "화이트" : "다크"}
+          </button>
           {user ? (
             <div className="account-menu">
               {user.user_metadata.avatar_url && (
@@ -903,6 +922,21 @@ function loadFeedback(): Feedback[] {
   } catch {
     return [];
   }
+}
+
+function loadTheme(): ThemeMode {
+  try {
+    const saved = localStorage.getItem(themeKey);
+    if (saved === "light" || saved === "dark") {
+      return saved;
+    }
+  } catch {
+    return "light";
+  }
+
+  return window.matchMedia?.("(prefers-color-scheme: dark)").matches
+    ? "dark"
+    : "light";
 }
 
 function getLuminance(red: number, green: number, blue: number) {
