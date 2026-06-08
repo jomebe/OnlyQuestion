@@ -128,6 +128,9 @@ const infoLinks = [
   { href: "exam-photo-guide.html", label: "시험지 촬영법" },
   { href: "scan-settings-guide.html", label: "보정 설정법" },
   { href: "study-workflow.html", label: "학습 활용법" },
+  { href: "highlighter-removal-guide.html", label: "형광펜 지우기" },
+  { href: "test-paper-pdf-guide.html", label: "문제지 PDF 만들기" },
+  { href: "academy-print-guide.html", label: "학원 프린트 정리" },
   { href: "privacy.html", label: "개인정보 처리방침" },
   { href: "terms.html", label: "이용약관" },
   { href: "contact.html", label: "문의" },
@@ -369,11 +372,16 @@ export default function App() {
       <header className="topbar">
         <div className="brand-copy">
           <h1>문제만</h1>
-          <strong>시험지 사진을 깔끔하게 정리하는 무료 도구</strong>
+          <strong>문제지 사진 보정기</strong>
           <p>
             {fileName ||
-              "그림자, 누런 배경, 흐린 글자를 브라우저에서 바로 보정해요."}
+              "시험지, 학원 프린트, 문제지 사진을 깔끔하게 정리해요."}
           </p>
+          <div className="trust-chips" aria-label="서비스 특징">
+            <span>무료 베타</span>
+            <span>브라우저 처리</span>
+            <span>PNG/PDF 저장</span>
+          </div>
         </div>
         <div className="topbar-actions">
           {user ? (
@@ -443,6 +451,11 @@ export default function App() {
             <span>사진 올리기</span>
             <strong>JPG, PNG</strong>
           </label>
+          <ul className="upload-benefits">
+            <li>누런 종이색과 그림자 완화</li>
+            <li>형광펜과 색펜 흔적 줄이기</li>
+            <li>보정 결과를 바로 저장</li>
+          </ul>
 
           <button
             className="secondary-button"
@@ -606,6 +619,20 @@ export default function App() {
           </p>
         </article>
         <article>
+          <h2>과외쌤/학원 대량 정리 문의</h2>
+          <p>
+            여러 학생의 시험지, 학원 프린트, 오답 자료를 정리해야 한다면 제휴 문의를
+            남겨주세요. 실제 사용량과 필요한 기능을 기준으로 우선 개선합니다.
+          </p>
+          <button
+            className="inline-cta"
+            type="button"
+            onClick={() => setShowInquiry(true)}
+          >
+            제휴 문의하기
+          </button>
+        </article>
+        <article>
           <h2>검은 손글씨가 남는 이유</h2>
           <p>
             인쇄된 문제 글자와 검은 펜 필기는 픽셀 색이 비슷해서 브라우저 보정만으로
@@ -620,6 +647,31 @@ export default function App() {
             </a>
           ))}
         </nav>
+      </section>
+
+      <section className="seo-section" aria-label="문제지 사진 보정 안내">
+        <div>
+          <h2>시험지 사진 정리 시간을 줄이는 문제지 보정 도구</h2>
+          <p>
+            문제만은 스캔앱처럼 설치하지 않아도 웹에서 바로 쓰는 문제지 사진 보정기입니다.
+            누런 시험지, 그림자 진 문제 사진, 형광펜이 칠해진 오답 자료를 업로드하고
+            자동 보정과 프리셋을 적용한 뒤 저장하면 됩니다.
+          </p>
+        </div>
+        <div className="seo-link-grid">
+          <a href="highlighter-removal-guide.html">
+            <strong>형광펜 표시 지우기</strong>
+            <span>노랑, 분홍, 초록 형광펜이 남는 사진 보정법</span>
+          </a>
+          <a href="test-paper-pdf-guide.html">
+            <strong>문제지 PDF 만들기</strong>
+            <span>사진으로 찍은 문제지를 인쇄용 PDF로 저장하는 방법</span>
+          </a>
+          <a href="academy-print-guide.html">
+            <strong>학원 프린트 정리</strong>
+            <span>과외쌤과 학원이 자료를 깔끔하게 공유하는 흐름</span>
+          </a>
+        </div>
       </section>
 
       {showInquiry && (
