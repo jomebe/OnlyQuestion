@@ -145,6 +145,7 @@ export default function App() {
   const [error, setError] = useState("");
   const [isProcessing, setIsProcessing] = useState(false);
   const [showFeedback, setShowFeedback] = useState(false);
+  const [showAdvanced, setShowAdvanced] = useState(false);
   const [feedback, setFeedback] = useState("");
   const [feedbackMessage, setFeedbackMessage] = useState("");
   const [showInquiry, setShowInquiry] = useState(false);
@@ -409,73 +410,15 @@ export default function App() {
               Google 로그인
             </button>
           )}
-          <a className="ghost-button" href="guide.html">
-            사용 가이드
-          </a>
-          <button
-            className="ghost-button"
-            type="button"
-            onClick={() => setShowInquiry(true)}
-          >
-            제휴 문의
-          </button>
         </div>
       </header>
 
       {authError && <p className="error-text">{authError}</p>}
 
-      <section className="usage-bar" aria-label="사용량">
-        <div>
-          <strong>모든 보정은 내 브라우저에서만 처리돼요</strong>
-          <span>사진은 서버로 업로드되지 않고 저장되지 않아요.</span>
-        </div>
-        <a href="privacy.html">개인정보 처리 방식</a>
-      </section>
-
       {inquiryStatus && <p className="notice-text">{inquiryStatus}</p>}
       {error && <p className="error-text">{error}</p>}
 
-      <main className="workspace">
-        <section className="upload-pane" aria-label="이미지 업로드">
-          <label
-            className="upload-box"
-            onDragOver={(event) => event.preventDefault()}
-            onDrop={handleDrop}
-          >
-            <input
-              type="file"
-              accept="image/*"
-              onChange={handleFileChange}
-              aria-label="이미지 선택"
-            />
-            <span>사진 올리기</span>
-            <strong>JPG, PNG</strong>
-          </label>
-          <ul className="upload-benefits">
-            <li>누런 종이색과 그림자 완화</li>
-            <li>형광펜과 색펜 흔적 줄이기</li>
-            <li>보정 결과를 바로 저장</li>
-          </ul>
-
-          <button
-            className="secondary-button"
-            type="button"
-            onClick={() => setSettings(autoSettings)}
-            disabled={!source}
-          >
-            자동으로 깨끗하게 만들기
-          </button>
-
-          {!source && (
-            <p className="upload-hint">
-              사진을 올리면 자동 보정을 사용할 수 있어요.
-            </p>
-          )}
-          <p className="helper-text">
-            검은 펜 필기는 일부 남을 수 있음
-          </p>
-        </section>
-
+      <main className="focus-workspace">
         <section className="preview-grid" aria-label="이미지 미리보기">
           <PreviewPanel
             className="original-preview"
@@ -483,7 +426,21 @@ export default function App() {
             imageUrl={originalUrl}
             emptyTitle="업로드한 사진이 여기에 표시돼요"
             emptyDescription="사진을 올리면 원본과 보정 결과를 나란히 비교할 수 있어요."
-          />
+          >
+            <label
+              className="compact-upload"
+              onDragOver={(event) => event.preventDefault()}
+              onDrop={handleDrop}
+            >
+              <input
+                type="file"
+                accept="image/*"
+                onChange={handleFileChange}
+                aria-label="이미지 선택"
+              />
+              <span>{source ? "다른 사진 올리기" : "사진 올리기"}</span>
+            </label>
+          </PreviewPanel>
           <PreviewPanel
             className="result-preview"
             title={isProcessing ? "결과 처리 중" : "결과"}
@@ -491,6 +448,29 @@ export default function App() {
             emptyTitle="보정된 이미지가 여기에 표시돼요"
             emptyDescription="결과를 확인한 뒤 PNG 또는 PDF로 저장할 수 있어요."
           >
+            <div className="primary-actions">
+              <button
+                type="button"
+                onClick={() => setSettings(autoSettings)}
+                disabled={!source}
+              >
+                자동 보정
+              </button>
+              <button type="button" onClick={downloadPng} disabled={!resultUrl}>
+                PNG 저장
+              </button>
+              <button type="button" onClick={downloadPdf} disabled={!resultUrl}>
+                PDF 저장
+              </button>
+            </div>
+            <button
+              className="advanced-link"
+              type="button"
+              onClick={() => setShowAdvanced(true)}
+              disabled={!source}
+            >
+              세부 보정 열기
+            </button>
             <button
               className="feedback-link"
               type="button"
@@ -515,17 +495,79 @@ export default function App() {
             {feedbackMessage && <p className="notice-text">{feedbackMessage}</p>}
           </PreviewPanel>
         </section>
+      </main>
 
-        <aside className="control-pane" aria-label="조절 옵션">
-          <div className="download-row">
-            <button type="button" onClick={downloadPng} disabled={!resultUrl}>
-              PNG로 저장
-            </button>
-            <button type="button" onClick={downloadPdf} disabled={!resultUrl}>
-              PDF로 저장
-            </button>
+      <section className="quiet-info" aria-label="서비스 안내">
+        <span>브라우저에서만 보정 · 서버 저장 없음 · 검은 펜 필기는 일부 남을 수 있음</span>
+        <button
+          className="text-link-button"
+          type="button"
+          onClick={() => setShowInquiry(true)}
+        >
+          학원/과외 대량 사용 문의
+        </button>
+        <nav className="footer-links" aria-label="사이트 정보">
+          {infoLinks.map((link) => (
+            <a href={link.href} key={link.href}>
+              {link.label}
+            </a>
+          ))}
+        </nav>
+      </section>
+
+      {showAdvanced && (
+        <AdvancedModal
+          settings={settings}
+          onClose={() => setShowAdvanced(false)}
+          onPreset={(nextSettings) => setSettings(nextSettings)}
+          onSlider={updateSlider}
+          onGrayscale={(grayscale) =>
+            setSettings((current) => ({ ...current, grayscale }))
+          }
+          disabled={!source}
+        />
+      )}
+
+      {showInquiry && (
+        <InquiryModal
+          inquiry={inquiry}
+          status={inquiryStatus}
+          onChange={updateInquiry}
+          onClose={() => setShowInquiry(false)}
+        />
+      )}
+    </div>
+  );
+}
+
+function AdvancedModal({
+  settings,
+  disabled,
+  onClose,
+  onPreset,
+  onSlider,
+  onGrayscale,
+}: {
+  settings: ImageSettings;
+  disabled: boolean;
+  onClose: () => void;
+  onPreset: (settings: ImageSettings) => void;
+  onSlider: (key: SliderKey, value: number) => void;
+  onGrayscale: (checked: boolean) => void;
+}) {
+  return (
+    <div className="modal-backdrop" role="dialog" aria-modal="true">
+      <section className="advanced-modal">
+        <div className="modal-head">
+          <div>
+            <h2>세부 보정</h2>
+            <p>필요할 때만 조절하세요. 기본은 자동 보정으로 충분합니다.</p>
           </div>
-
+          <button type="button" onClick={onClose} aria-label="닫기">
+            닫기
+          </button>
+        </div>
+        <div className="advanced-body">
           <div className="preset-section">
             <strong>빠른 보정</strong>
             <div className="preset-row">
@@ -533,16 +575,14 @@ export default function App() {
                 <button
                   type="button"
                   key={preset.label}
-                  onClick={() => setSettings(preset.settings)}
-                  disabled={!source}
+                  onClick={() => onPreset(preset.settings)}
+                  disabled={disabled}
                 >
                   {preset.label}
                 </button>
               ))}
             </div>
-            <span>먼저 선택하고 아래에서 세부 조절하세요.</span>
           </div>
-
           <div className="control-group">
             {sliders.map((slider) => (
               <label className="slider-row" key={slider.key}>
@@ -559,129 +599,24 @@ export default function App() {
                   max={slider.max}
                   value={settings[slider.key]}
                   onChange={(event) =>
-                    updateSlider(slider.key, Number(event.target.value))
+                    onSlider(slider.key, Number(event.target.value))
                   }
-                  disabled={!source}
+                  disabled={disabled}
                 />
               </label>
             ))}
-
             <label className="toggle-row">
               <input
                 type="checkbox"
                 checked={settings.grayscale}
-                onChange={(event) =>
-                  setSettings((current) => ({
-                    ...current,
-                    grayscale: event.target.checked,
-                  }))
-                }
-                disabled={!source}
+                onChange={(event) => onGrayscale(event.target.checked)}
+                disabled={disabled}
               />
               <span>흑백 변환</span>
             </label>
           </div>
-        </aside>
-      </main>
-
-      <section className="quality-section" aria-label="문제만 서비스 정보">
-        <article>
-          <h2>이런 사진에 좋아요</h2>
-          <ul>
-            <li>누렇게 찍힌 시험지 사진</li>
-            <li>그림자가 진 문제 사진</li>
-            <li>글자가 흐린 학원 프린트</li>
-            <li>배경이 지저분한 문제지</li>
-          </ul>
-        </article>
-        <article>
-          <h2>사진은 서버에 저장하지 않습니다</h2>
-          <p>
-            이미지는 사용자의 브라우저 Canvas에서 처리됩니다. 현재 베타 버전은
-            시험지 이미지를 서버로 업로드하지 않으므로 로그인 여부와 관계없이
-            서비스 서버에 이미지가 보관되지 않습니다.
-          </p>
-        </article>
-        <article>
-          <h2>사진 상태에 맞는 권장 설정</h2>
-          <p>
-            종이가 누렇게 보이면 배경 제거와 밝기를 올리고, 글자가 흐리면 대비를
-            올려보세요. 형광펜과 색펜은 각각 별도 슬라이더로 조절할 수 있습니다.
-            흑백 변환은 복사하거나 다시 풀 문제지를 만들 때 유용합니다.
-          </p>
-        </article>
-        <article>
-          <h2>촬영할 때 결과를 좋아지게 하는 방법</h2>
-          <p>
-            시험지를 평평하게 펴고 카메라를 종이와 평행하게 맞추세요. 창가처럼
-            빛이 고르게 들어오는 곳에서 찍고, 손이나 휴대폰 그림자가 문제 위에
-            생기지 않게 하면 자동 보정 결과가 더 안정적입니다.
-          </p>
-        </article>
-        <article>
-          <h2>과외쌤/학원 대량 정리 문의</h2>
-          <p>
-            여러 학생의 시험지, 학원 프린트, 오답 자료를 정리해야 한다면 제휴 문의를
-            남겨주세요. 실제 사용량과 필요한 기능을 기준으로 우선 개선합니다.
-          </p>
-          <button
-            className="inline-cta"
-            type="button"
-            onClick={() => setShowInquiry(true)}
-          >
-            제휴 문의하기
-          </button>
-        </article>
-        <article>
-          <h2>검은 손글씨가 남는 이유</h2>
-          <p>
-            인쇄된 문제 글자와 검은 펜 필기는 픽셀 색이 비슷해서 브라우저 보정만으로
-            완벽히 분리하기 어렵습니다. 검은 필기가 많은 사진은 대비를 조금 낮추고
-            흑백 변환 전후를 비교해 더 읽기 좋은 결과를 선택하세요.
-          </p>
-        </article>
-        <nav className="footer-links" aria-label="사이트 정보">
-          {infoLinks.map((link) => (
-            <a href={link.href} key={link.href}>
-              {link.label}
-            </a>
-          ))}
-        </nav>
-      </section>
-
-      <section className="seo-section" aria-label="문제지 사진 보정 안내">
-        <div>
-          <h2>시험지 사진 정리 시간을 줄이는 문제지 보정 도구</h2>
-          <p>
-            문제만은 스캔앱처럼 설치하지 않아도 웹에서 바로 쓰는 문제지 사진 보정기입니다.
-            누런 시험지, 그림자 진 문제 사진, 형광펜이 칠해진 오답 자료를 업로드하고
-            자동 보정과 프리셋을 적용한 뒤 저장하면 됩니다.
-          </p>
-        </div>
-        <div className="seo-link-grid">
-          <a href="highlighter-removal-guide.html">
-            <strong>형광펜 표시 지우기</strong>
-            <span>노랑, 분홍, 초록 형광펜이 남는 사진 보정법</span>
-          </a>
-          <a href="test-paper-pdf-guide.html">
-            <strong>문제지 PDF 만들기</strong>
-            <span>사진으로 찍은 문제지를 인쇄용 PDF로 저장하는 방법</span>
-          </a>
-          <a href="academy-print-guide.html">
-            <strong>학원 프린트 정리</strong>
-            <span>과외쌤과 학원이 자료를 깔끔하게 공유하는 흐름</span>
-          </a>
         </div>
       </section>
-
-      {showInquiry && (
-        <InquiryModal
-          inquiry={inquiry}
-          status={inquiryStatus}
-          onChange={updateInquiry}
-          onClose={() => setShowInquiry(false)}
-        />
-      )}
     </div>
   );
 }
