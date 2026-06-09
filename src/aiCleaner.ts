@@ -3,10 +3,16 @@ import type { InferenceSession } from "onnxruntime-web";
 const tileSize = 512;
 const overlap = 96;
 const modelPath = "models/handwriting-cleaner.onnx";
+const modelManifestPath = "models/handwriting-cleaner.json";
 
 let runtimePromise: Promise<typeof import("onnxruntime-web/webgpu")> | null = null;
 let sessionPromise: Promise<InferenceSession> | null = null;
 let activeBackend = "WASM";
+
+type ExternalDataEntry = {
+  path: string;
+  file: string;
+};
 
 export type AiCleanResult = {
   dataUrl: string;
@@ -120,10 +126,20 @@ async function getSession() {
     ort.env.wasm.numThreads = Math.min(4, navigator.hardwareConcurrency || 1);
     const hasWebGpu = "gpu" in navigator;
     activeBackend = hasWebGpu ? "WebGPU" : "WASM";
+    const baseUrl = import.meta.env.BASE_URL;
+    const manifestResponse = await fetch(`${baseUrl}${modelManifestPath}`);
+    if (!manifestResponse.ok) {
+      throw new Error("Failed to load the AI model manifest.");
+    }
+    const manifest = (await manifestResponse.json()) as ExternalDataEntry[];
     sessionPromise = ort.InferenceSession.create(
-      `${import.meta.env.BASE_URL}${modelPath}`,
+      `${baseUrl}${modelPath}`,
       {
         executionProviders: hasWebGpu ? ["webgpu", "wasm"] : ["wasm"],
+        externalData: manifest.map((entry) => ({
+          path: entry.path,
+          data: `${baseUrl}models/${entry.file}`,
+        })),
         graphOptimizationLevel: "all",
       },
     ).catch((error) => {
