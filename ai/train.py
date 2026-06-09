@@ -34,6 +34,12 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--validate-every", type=int, default=1_000)
     parser.add_argument("--resume", type=Path)
     parser.add_argument("--weights", type=Path)
+    parser.add_argument(
+        "--hard-negative",
+        type=Path,
+        action="append",
+        default=[],
+    )
     return parser.parse_args()
 
 
@@ -67,16 +73,26 @@ def compute_loss(
     mask_bce = F.binary_cross_entropy_with_logits(
         mask_logits,
         mask_target,
-        pos_weight=torch.tensor(4.0, device=output.device),
+        pos_weight=torch.tensor(2.0, device=output.device),
     )
     mask_dice = dice_loss(mask_logits, mask_target)
+    false_positive = (
+        mask_logits.sigmoid() * (1 - mask_target)
+    ).mean()
     pixel_weight = 1 + mask_target * 5
     clean_l1 = ((clean_prediction - clean_target).abs() * pixel_weight).mean()
     edges = gradient_loss(clean_prediction, clean_target)
-    loss = mask_bce + mask_dice + clean_l1 * 2.5 + edges * 0.75
+    loss = (
+        mask_bce
+        + mask_dice
+        + false_positive * 2
+        + clean_l1 * 2.5
+        + edges * 0.75
+    )
     return loss, {
         "mask_bce": mask_bce.item(),
         "mask_dice": mask_dice.item(),
+        "false_positive": false_positive.item(),
         "clean_l1": clean_l1.item(),
         "edges": edges.item(),
     }
@@ -131,6 +147,7 @@ def main() -> None:
         "Training",
         args.image_size,
         samples_per_epoch=args.steps * args.batch_size,
+        hard_negative_paths=args.hard_negative,
     )
     validation_dataset = MathHandwritingDataset(
         args.data,
@@ -177,8 +194,8 @@ def main() -> None:
     if args.weights:
         checkpoint = torch.load(args.weights, map_location=device, weights_only=False)
         model.load_state_dict(checkpoint["model"])
-        best_f1 = checkpoint.get("best_f1", 0.0)
-        print(f"loaded weights best_f1={best_f1:.4f}")
+        source_f1 = checkpoint.get("best_f1", 0.0)
+        print(f"loaded weights source_f1={source_f1:.4f}")
     elif args.resume:
         checkpoint = torch.load(args.resume, map_location=device, weights_only=False)
         model.load_state_dict(checkpoint["model"])
@@ -192,7 +209,9 @@ def main() -> None:
     optimizer.zero_grad(set_to_none=True)
     model.train()
     started_at = time.time()
-    latest_path = args.output.with_name("latest.pt")
+    latest_path = args.output.with_name(
+        f"{args.output.stem}-latest{args.output.suffix}",
+    )
 
     for step, (inputs, target) in enumerate(train_loader, start=start_step + 1):
         if step > args.steps:

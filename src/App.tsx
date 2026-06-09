@@ -201,8 +201,13 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-    const activeSource = aiSource ?? source;
-    if (!activeSource) {
+    if (aiSource) {
+      setResultUrl(aiSource.image.src);
+      setIsProcessing(false);
+      return;
+    }
+
+    if (!source) {
       return;
     }
 
@@ -212,7 +217,7 @@ export default function App() {
 
     const frame = window.requestAnimationFrame(() => {
       try {
-        const nextResult = cleanImage(activeSource.image, settings);
+        const nextResult = cleanImage(source.image, settings);
         if (jobRef.current === jobId) {
           setResultUrl(nextResult);
           setError("");
@@ -283,10 +288,18 @@ export default function App() {
   };
 
   const updateSlider = (key: SliderKey, value: number) => {
+    setAiSource(null);
+    setAiStatus("");
     setSettings((current) => ({
       ...current,
       [key]: value,
     }));
+  };
+
+  const applySettings = (nextSettings: ImageSettings) => {
+    setAiSource(null);
+    setAiStatus("");
+    setSettings(nextSettings);
   };
 
   const runAiCleaner = async () => {
@@ -522,7 +535,7 @@ export default function App() {
               </button>
               <button
                 type="button"
-                onClick={() => setSettings(autoSettings)}
+                onClick={() => applySettings(autoSettings)}
                 disabled={!source}
               >
                 자동 보정
@@ -590,11 +603,13 @@ export default function App() {
         <AdvancedModal
           settings={settings}
           onClose={() => setShowAdvanced(false)}
-          onPreset={(nextSettings) => setSettings(nextSettings)}
+          onPreset={applySettings}
           onSlider={updateSlider}
-          onGrayscale={(grayscale) =>
-            setSettings((current) => ({ ...current, grayscale }))
-          }
+          onGrayscale={(grayscale) => {
+            setAiSource(null);
+            setAiStatus("");
+            setSettings((current) => ({ ...current, grayscale }));
+          }}
           disabled={!source}
         />
       )}
