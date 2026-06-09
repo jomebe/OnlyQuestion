@@ -276,10 +276,6 @@ a {
   cursor: pointer;
 }
 
-.primary-actions button:first-child {
-  background: var(--primary-dark);
-}
-
 button:disabled {
   cursor: not-allowed;
   opacity: 0.45;
@@ -382,8 +378,16 @@ button:disabled {
 
 .primary-actions {
   display: grid;
-  grid-template-columns: 1fr 1fr 1fr;
+  grid-template-columns: 1.25fr 1fr 1fr 1fr;
   gap: 10px;
+}
+
+.primary-actions button:first-child {
+  background: var(--primary);
+}
+
+.primary-actions button:nth-child(2) {
+  background: var(--primary-dark);
 }
 
 .advanced-link,

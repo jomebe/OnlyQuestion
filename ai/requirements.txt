@@ -1,0 +1,7 @@
+numpy>=2.0
+onnx>=1.18
+onnxruntime>=1.22
+opencv-python>=4.10
+Pillow>=11.0
+torch>=2.10
+

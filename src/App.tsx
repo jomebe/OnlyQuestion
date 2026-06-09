@@ -9,6 +9,7 @@ import {
 import { jsPDF } from "jspdf";
 import type { User } from "@supabase/supabase-js";
 import { supabase } from "./supabase";
+import { removeHandwriting } from "./aiCleaner";
 
 type ImageSettings = {
   background: number;
@@ -142,12 +143,15 @@ const infoLinks = [
 export default function App() {
   const [theme, setTheme] = useState<ThemeMode>(() => loadTheme());
   const [source, setSource] = useState<LoadedImage | null>(null);
+  const [aiSource, setAiSource] = useState<LoadedImage | null>(null);
   const [originalUrl, setOriginalUrl] = useState("");
   const [resultUrl, setResultUrl] = useState("");
   const [settings, setSettings] = useState<ImageSettings>(defaultSettings);
   const [fileName, setFileName] = useState("");
   const [error, setError] = useState("");
   const [isProcessing, setIsProcessing] = useState(false);
+  const [isAiProcessing, setIsAiProcessing] = useState(false);
+  const [aiStatus, setAiStatus] = useState("");
   const [showFeedback, setShowFeedback] = useState(false);
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [feedback, setFeedback] = useState("");
@@ -197,7 +201,8 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-    if (!source) {
+    const activeSource = aiSource ?? source;
+    if (!activeSource) {
       return;
     }
 
@@ -207,7 +212,7 @@ export default function App() {
 
     const frame = window.requestAnimationFrame(() => {
       try {
-        const nextResult = cleanImage(source.image, settings);
+        const nextResult = cleanImage(activeSource.image, settings);
         if (jobRef.current === jobId) {
           setResultUrl(nextResult);
           setError("");
@@ -225,7 +230,7 @@ export default function App() {
     });
 
     return () => window.cancelAnimationFrame(frame);
-  }, [source, settings]);
+  }, [source, aiSource, settings]);
 
   const loadFile = (file: File | null) => {
     if (!file) {
@@ -252,6 +257,8 @@ export default function App() {
         width: image.naturalWidth,
         height: image.naturalHeight,
       });
+      setAiSource(null);
+      setAiStatus("");
       setFileName(file.name);
       setFeedbackMessage("");
       setError("");
@@ -280,6 +287,37 @@ export default function App() {
       ...current,
       [key]: value,
     }));
+  };
+
+  const runAiCleaner = async () => {
+    if (!source || isAiProcessing) {
+      return;
+    }
+
+    setIsAiProcessing(true);
+    setAiStatus("AI 모델을 불러오고 손글씨를 분석하고 있습니다.");
+    setError("");
+    try {
+      const { dataUrl, backend } = await removeHandwriting(
+        source.image,
+        maxCanvasSide,
+      );
+      const image = await loadImage(dataUrl);
+      setAiSource({
+        image,
+        width: image.naturalWidth,
+        height: image.naturalHeight,
+      });
+      setAiStatus(`${backend} AI로 손글씨 제거가 완료되었습니다.`);
+    } catch (nextError) {
+      console.error(nextError);
+      setAiStatus("");
+      setError(
+        "AI 모델을 실행하지 못했습니다. WebGPU를 지원하는 최신 Chrome 또는 Edge에서 다시 시도해주세요.",
+      );
+    } finally {
+      setIsAiProcessing(false);
+    }
   };
 
   const submitFeedback = () => {
@@ -435,6 +473,7 @@ export default function App() {
       {authError && <p className="error-text">{authError}</p>}
 
       {inquiryStatus && <p className="notice-text">{inquiryStatus}</p>}
+      {aiStatus && <p className="notice-text">{aiStatus}</p>}
       {error && <p className="error-text">{error}</p>}
 
       <main className="focus-workspace">
@@ -462,12 +501,25 @@ export default function App() {
           </PreviewPanel>
           <PreviewPanel
             className="result-preview"
-            title={isProcessing ? "결과 처리 중" : "결과"}
+            title={
+              isAiProcessing
+                ? "AI 손글씨 분석 중"
+                : isProcessing
+                  ? "결과 처리 중"
+                  : "결과"
+            }
             imageUrl={resultUrl}
             emptyTitle="보정된 이미지가 여기에 표시돼요"
             emptyDescription="결과를 확인한 뒤 PNG 또는 PDF로 저장할 수 있어요."
           >
             <div className="primary-actions">
+              <button
+                type="button"
+                onClick={runAiCleaner}
+                disabled={!source || isAiProcessing}
+              >
+                {isAiProcessing ? "AI 처리 중" : "AI 손글씨 제거"}
+              </button>
               <button
                 type="button"
                 onClick={() => setSettings(autoSettings)}
@@ -517,7 +569,7 @@ export default function App() {
       </main>
 
       <section className="quiet-info" aria-label="서비스 안내">
-        <span>브라우저에서만 보정 · 서버 저장 없음 · 검은 펜 필기는 일부 남을 수 있음</span>
+        <span>WebGPU 브라우저 AI 처리 · 서버 저장 없음 · 원본은 기기 밖으로 전송되지 않음</span>
         <button
           className="text-link-button"
           type="button"
@@ -958,4 +1010,13 @@ function clamp(value: number) {
 
 function clamp01(value: number) {
   return Math.max(0, Math.min(1, value));
+}
+
+function loadImage(url: string) {
+  return new Promise<HTMLImageElement>((resolve, reject) => {
+    const image = new Image();
+    image.onload = () => resolve(image);
+    image.onerror = reject;
+    image.src = url;
+  });
 }

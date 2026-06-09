@@ -4,3 +4,5 @@ dist
 *.local
 *.log
 npm-debug.log*
+__pycache__
+ai/runs
