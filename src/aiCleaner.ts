@@ -95,10 +95,10 @@ export async function removeHandwriting(
   for (let pixel = 0; pixel < width * height; pixel += 1) {
     const x = pixel % width;
     const y = Math.floor(pixel / width);
-    const probability = localMaximum(maskProbability, width, height, x, y, 2);
+    const probability = localMaximum(maskProbability, width, height, x, y, 1);
     if (
-      probability < 0.50 ||
-      rectangleSum(printedInkIntegral, width, height, x, y, 20, 4) >= 70
+      probability < 0.55 ||
+      rectangleSum(printedInkIntegral, width, height, x, y, 20, 4) >= 55
     ) {
       continue;
     }
