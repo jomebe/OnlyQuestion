@@ -108,9 +108,9 @@ export async function removeHandwriting(
     const y = Math.floor(pixel / width);
     const probability = localMaximum(maskProbability, width, height, x, y, 1);
     if (
-      probability < 0.72 ||
+      probability < 0.68 ||
       localMaximum(protectedBlack, width, height, x, y, 3) > 0 ||
-      rectangleSum(printedInkIntegral, width, height, x, y, 20, 4) >= 30
+      rectangleSum(printedInkIntegral, width, height, x, y, 20, 4) >= 45
     ) {
       continue;
     }
@@ -128,7 +128,7 @@ export async function removeHandwriting(
     }
 
     const paperColor = estimatePaperColor(source.data, width, height, x, y);
-    const blend = Math.max(0.78, smoothstep(0.72, 1, probability));
+    const blend = Math.max(0.82, smoothstep(0.68, 1, probability));
     result.data[offset] = mix(red, paperColor[0], blend);
     result.data[offset + 1] = mix(green, paperColor[1], blend);
     result.data[offset + 2] = mix(blue, paperColor[2], blend);
