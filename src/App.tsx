@@ -170,6 +170,7 @@ export default function App() {
   const [authError, setAuthError] = useState("");
   const objectUrlRef = useRef("");
   const jobRef = useRef(0);
+  const aiJobRef = useRef(0);
 
   useEffect(() => {
     document.documentElement.dataset.theme = theme;
@@ -202,13 +203,8 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-    if (aiSource) {
-      setResultUrl(aiSource.image.src);
-      setIsProcessing(false);
-      return;
-    }
-
-    if (!source) {
+    const processingSource = aiSource ?? source;
+    if (!processingSource) {
       return;
     }
 
@@ -218,7 +214,7 @@ export default function App() {
 
     const frame = window.requestAnimationFrame(() => {
       try {
-        const nextResult = cleanImage(source.image, settings);
+        const nextResult = cleanImage(processingSource.image, settings);
         if (jobRef.current === jobId) {
           setResultUrl(nextResult);
           setError("");
@@ -258,16 +254,18 @@ export default function App() {
 
       objectUrlRef.current = objectUrl;
       setOriginalUrl(objectUrl);
-      setSource({
+      const loadedImage = {
         image,
         width: image.naturalWidth,
         height: image.naturalHeight,
-      });
+      };
+      setSource(loadedImage);
       setAiSource(null);
       setAiStatus("");
       setFileName(file.name);
       setFeedbackMessage("");
       setError("");
+      void runAiCleaner(loadedImage);
     };
 
     image.onerror = () => {
@@ -312,8 +310,6 @@ export default function App() {
   };
 
   const updateSlider = (key: SliderKey, value: number) => {
-    setAiSource(null);
-    setAiStatus("");
     setSettings((current) => ({
       ...current,
       [key]: value,
@@ -321,25 +317,28 @@ export default function App() {
   };
 
   const applySettings = (nextSettings: ImageSettings) => {
-    setAiSource(null);
-    setAiStatus("");
     setSettings(nextSettings);
   };
 
-  const runAiCleaner = async () => {
-    if (!source || isAiProcessing) {
+  const runAiCleaner = async (inputSource: LoadedImage | null = source) => {
+    if (!inputSource) {
       return;
     }
 
+    const aiJobId = aiJobRef.current + 1;
+    aiJobRef.current = aiJobId;
     setIsAiProcessing(true);
     setAiStatus("AI 모델을 불러오고 손글씨를 분석하고 있습니다.");
     setError("");
     try {
       const { dataUrl, backend } = await removeHandwriting(
-        source.image,
+        inputSource.image,
         maxCanvasSide,
       );
       const image = await loadImage(dataUrl);
+      if (aiJobRef.current !== aiJobId) {
+        return;
+      }
       setAiSource({
         image,
         width: image.naturalWidth,
@@ -347,13 +346,18 @@ export default function App() {
       });
       setAiStatus(`${backend} AI로 손글씨 제거가 완료되었습니다.`);
     } catch (nextError) {
+      if (aiJobRef.current !== aiJobId) {
+        return;
+      }
       console.error(nextError);
       setAiStatus("");
       setError(
         "AI 모델을 실행하지 못했습니다. WebGPU를 지원하는 최신 Chrome 또는 Edge에서 다시 시도해주세요.",
       );
     } finally {
-      setIsAiProcessing(false);
+      if (aiJobRef.current === aiJobId) {
+        setIsAiProcessing(false);
+      }
     }
   };
 
@@ -553,7 +557,7 @@ export default function App() {
             <div className="primary-actions">
               <button
                 type="button"
-                onClick={runAiCleaner}
+                onClick={() => void runAiCleaner()}
                 disabled={!source || isAiProcessing}
               >
                 {isAiProcessing ? "AI 처리 중" : "AI 손글씨 제거"}
