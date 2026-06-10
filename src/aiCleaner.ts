@@ -146,9 +146,13 @@ async function getSession() {
   if (!sessionPromise) {
     const ort = await getRuntime();
     ort.env.wasm.numThreads = Math.min(4, navigator.hardwareConcurrency || 1);
+    const baseUrl = import.meta.env.BASE_URL;
+    ort.env.wasm.wasmPaths = {
+      mjs: `${baseUrl}runtime/ort-wasm-simd-threaded.asyncify.mjs`,
+      wasm: `${baseUrl}runtime/ort-wasm-simd-threaded.asyncify.wasm`,
+    };
     const hasWebGpu = "gpu" in navigator;
     activeBackend = hasWebGpu ? "WebGPU" : "WASM";
-    const baseUrl = import.meta.env.BASE_URL;
     const manifestResponse = await fetch(
       `${baseUrl}${modelManifestPath}?v=${modelVersion}`,
     );
