@@ -314,6 +314,11 @@ button:disabled {
   overflow: hidden;
 }
 
+.preview-panel.drop-active {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary) 28%, transparent);
+}
+
 .preview-title {
   display: flex;
   min-height: 42px;
@@ -325,6 +330,7 @@ button:disabled {
 }
 
 .image-frame {
+  position: relative;
   display: grid;
   min-height: min(62vh, 680px);
   place-items: center;
@@ -341,6 +347,30 @@ button:disabled {
     8px -8px,
     -8px 0;
   background-size: 16px 16px;
+}
+
+.drop-overlay {
+  position: absolute;
+  z-index: 2;
+  inset: 12px;
+  display: grid;
+  place-content: center;
+  gap: 8px;
+  border: 2px dashed var(--primary);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--panel) 88%, transparent);
+  color: var(--primary-strong);
+  text-align: center;
+  pointer-events: none;
+}
+
+.drop-overlay strong {
+  font-size: 18px;
+}
+
+.drop-overlay span {
+  color: var(--text-medium);
+  font-size: 13px;
 }
 
 .image-frame img {

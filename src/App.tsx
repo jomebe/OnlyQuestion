@@ -151,6 +151,7 @@ export default function App() {
   const [error, setError] = useState("");
   const [isProcessing, setIsProcessing] = useState(false);
   const [isAiProcessing, setIsAiProcessing] = useState(false);
+  const [isDraggingFile, setIsDraggingFile] = useState(false);
   const [aiStatus, setAiStatus] = useState("");
   const [showFeedback, setShowFeedback] = useState(false);
   const [showAdvanced, setShowAdvanced] = useState(false);
@@ -282,8 +283,31 @@ export default function App() {
     event.target.value = "";
   };
 
-  const handleDrop = (event: DragEvent<HTMLLabelElement>) => {
+  const handleDragEnter = (event: DragEvent<HTMLElement>) => {
     event.preventDefault();
+    if (event.dataTransfer.types.includes("Files")) {
+      setIsDraggingFile(true);
+    }
+  };
+
+  const handleDragOver = (event: DragEvent<HTMLElement>) => {
+    event.preventDefault();
+    event.dataTransfer.dropEffect = "copy";
+  };
+
+  const handleDragLeave = (event: DragEvent<HTMLElement>) => {
+    if (
+      event.relatedTarget instanceof Node &&
+      event.currentTarget.contains(event.relatedTarget)
+    ) {
+      return;
+    }
+    setIsDraggingFile(false);
+  };
+
+  const handleDrop = (event: DragEvent<HTMLElement>) => {
+    event.preventDefault();
+    setIsDraggingFile(false);
     loadFile(event.dataTransfer.files?.[0] ?? null);
   };
 
@@ -497,12 +521,13 @@ export default function App() {
             imageUrl={originalUrl}
             emptyTitle="업로드한 사진이 여기에 표시돼요"
             emptyDescription="사진을 올리면 원본과 보정 결과를 나란히 비교할 수 있어요."
+            isDropActive={isDraggingFile}
+            onDragEnter={handleDragEnter}
+            onDragOver={handleDragOver}
+            onDragLeave={handleDragLeave}
+            onDrop={handleDrop}
           >
-            <label
-              className="compact-upload"
-              onDragOver={(event) => event.preventDefault()}
-              onDrop={handleDrop}
-            >
+            <label className="compact-upload">
               <input
                 type="file"
                 accept="image/*"
@@ -713,6 +738,11 @@ function PreviewPanel({
   imageUrl,
   emptyTitle,
   emptyDescription,
+  isDropActive = false,
+  onDragEnter,
+  onDragOver,
+  onDragLeave,
+  onDrop,
   children,
 }: {
   className: string;
@@ -720,12 +750,29 @@ function PreviewPanel({
   imageUrl: string;
   emptyTitle: string;
   emptyDescription: string;
+  isDropActive?: boolean;
+  onDragEnter?: (event: DragEvent<HTMLElement>) => void;
+  onDragOver?: (event: DragEvent<HTMLElement>) => void;
+  onDragLeave?: (event: DragEvent<HTMLElement>) => void;
+  onDrop?: (event: DragEvent<HTMLElement>) => void;
   children?: ReactNode;
 }) {
   return (
-    <article className={`preview-panel ${className}`}>
+    <article
+      className={`preview-panel ${className}${isDropActive ? " drop-active" : ""}`}
+      onDragEnter={onDragEnter}
+      onDragOver={onDragOver}
+      onDragLeave={onDragLeave}
+      onDrop={onDrop}
+    >
       <div className="preview-title">{title}</div>
       <div className="image-frame">
+        {isDropActive && (
+          <div className="drop-overlay">
+            <strong>사진을 여기에 놓으세요</strong>
+            <span>이미지 파일을 바로 불러옵니다.</span>
+          </div>
+        )}
         {imageUrl ? (
           <img src={imageUrl} alt={`${title} 미리보기`} />
         ) : (
