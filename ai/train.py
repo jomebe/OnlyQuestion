@@ -85,7 +85,7 @@ def compute_loss(
     loss = (
         mask_bce
         + mask_dice
-        + false_positive * 2
+        + false_positive * 4
         + clean_l1 * 2.5
         + edges * 0.75
     )

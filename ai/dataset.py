@@ -109,7 +109,7 @@ class MathHandwritingDataset(Dataset[tuple[torch.Tensor, torch.Tensor]]):
         if (
             self.training
             and self.hard_negative_paths
-            and rng.random() < 0.40
+            and rng.random() < 0.65
         ):
             path = rng.choice(self.hard_negative_paths)
             composite = self._hard_negative(path, rng)

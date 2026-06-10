@@ -82,20 +82,9 @@ export async function removeHandwriting(
     height,
   );
   const maskProbability = new Float32Array(width * height);
-  const protectedBlack = new Uint8Array(width * height);
   for (let pixel = 0; pixel < width * height; pixel += 1) {
     const weight = Math.max(weightSum[pixel], 1e-6);
     maskProbability[pixel] = sigmoid(maskSum[pixel] / weight);
-    const offset = pixel * 4;
-    const red = source.data[offset];
-    const green = source.data[offset + 1];
-    const blue = source.data[offset + 2];
-    const luminance = getLuminance(red, green, blue);
-    const maximum = Math.max(red, green, blue);
-    const minimum = Math.min(red, green, blue);
-    const saturation = maximum === 0 ? 0 : (maximum - minimum) / maximum;
-    protectedBlack[pixel] =
-      luminance < 55 && saturation < 0.2 ? 1 : 0;
   }
   const printedInkIntegral = buildPrintedInkIntegral(
     source.data,
@@ -108,9 +97,8 @@ export async function removeHandwriting(
     const y = Math.floor(pixel / width);
     const probability = localMaximum(maskProbability, width, height, x, y, 1);
     if (
-      probability < 0.68 ||
-      localMaximum(protectedBlack, width, height, x, y, 3) > 0 ||
-      rectangleSum(printedInkIntegral, width, height, x, y, 20, 4) >= 45
+      probability < 0.60 ||
+      rectangleSum(printedInkIntegral, width, height, x, y, 20, 4) >= 70
     ) {
       continue;
     }
