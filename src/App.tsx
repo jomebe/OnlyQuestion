@@ -131,6 +131,8 @@ const infoLinks = [
   { href: "guide.html", label: "사용 가이드" },
   { href: "exam-photo-guide.html", label: "시험지 촬영법" },
   { href: "scan-settings-guide.html", label: "보정 설정법" },
+  { href: "how-it-works.html", label: "보정 원리" },
+  { href: "troubleshooting.html", label: "문제 해결" },
   { href: "study-workflow.html", label: "학습 활용법" },
   { href: "highlighter-removal-guide.html", label: "형광펜 지우기" },
   { href: "test-paper-pdf-guide.html", label: "문제지 PDF 만들기" },

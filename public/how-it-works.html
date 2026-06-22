@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-K5E3JDMW04"></script>
+    <script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments)}gtag('js',new Date());gtag('config','G-K5E3JDMW04');</script>
+    <meta name="description" content="문제만이 시험지 사진의 배경, 그림자, 형광펜과 색펜을 브라우저 Canvas에서 보정하는 원리와 기술적 한계를 설명합니다." />
+    <meta name="robots" content="index,follow" />
+    <link rel="canonical" href="https://onlyquestion.pages.dev/how-it-works" />
+    <title>시험지 사진 보정 원리와 한계 - 문제만</title>
+    <style>
+      body{margin:0;background:#eef1f4;color:#1f2933;font-family:system-ui,-apple-system,"Segoe UI",sans-serif;line-height:1.75}main{width:min(900px,100%);margin:0 auto;padding:28px 16px 56px}article{background:#fff;border:1px solid #d4dde6;border-radius:8px;padding:clamp(20px,4vw,38px)}h1,h2,h3{color:#121820;line-height:1.3;letter-spacing:0}h2{margin-top:34px}a{color:#0f6769;font-weight:700}.summary{padding:16px;border-left:4px solid #0f8b8d;background:#f2f8f8}.table-wrap{overflow-x:auto}table{width:100%;border-collapse:collapse}th,td{padding:11px;border:1px solid #d4dde6;text-align:left;vertical-align:top}th{background:#f6f8fa}nav{display:flex;flex-wrap:wrap;gap:12px;margin-top:32px;padding-top:20px;border-top:1px solid #d4dde6}code{padding:2px 5px;background:#eef1f4;border-radius:4px}
+    </style>
+  </head>
+  <body><main><article>
+    <h1>시험지 사진 보정 원리와 기술적 한계</h1>
+    <p class="summary">문제만은 사진을 서버에 올려 분석하는 서비스가 아닙니다. 브라우저가 이미지 픽셀을 직접 읽고 배경과 색 흔적을 완화한 뒤 새 PNG를 만듭니다. 이 문서는 어떤 기준으로 보정되는지, 왜 일부 흔적은 남는지, 원본을 훼손하지 않고 결과를 조절하는 방법을 설명합니다.</p>
+
+    <h2>1. 사진이 처리되는 순서</h2>
+    <p>사용자가 사진을 선택하면 브라우저의 <code>Canvas API</code>가 이미지를 작업용 캔버스에 그립니다. 지나치게 큰 사진은 긴 변을 기준으로 작업 크기를 줄여 휴대폰에서도 메모리 부족 없이 처리합니다. 이후 각 픽셀의 빨강, 초록, 파랑 값으로 밝기와 채도를 계산합니다. 밝고 채도가 낮은 픽셀은 종이 배경일 가능성이 높고, 어두운 픽셀은 인쇄 글자일 가능성이 높다고 판단합니다.</p>
+    <p>이 방식은 문자 내용을 읽거나 시험 문제를 외부 서버로 보내지 않습니다. 결과 이미지도 사용자가 저장 버튼을 누를 때 기기 안에서 만들어집니다. 다만 브라우저 확장 프로그램, 운영체제 또는 사용자가 별도로 설치한 소프트웨어의 동작까지 문제만이 통제할 수는 없습니다.</p>
+
+    <h2>2. 배경 제거와 글자 강화</h2>
+    <p>누런 종이, 약한 회색 그림자, 촬영 조명은 대체로 글자보다 밝습니다. 배경 제거 강도를 올리면 이런 밝은 영역을 흰색 쪽으로 이동시킵니다. 동시에 어두운 영역은 대비 값에 따라 검은색 쪽으로 이동해 인쇄 글자가 선명해집니다. 배경 제거를 지나치게 높이면 연한 회색 도형, 얇은 수식 기호, 흐린 인쇄 글자도 배경으로 오인될 수 있습니다.</p>
+    <div class="table-wrap"><table><thead><tr><th>설정</th><th>주로 바뀌는 부분</th><th>과하게 적용했을 때</th></tr></thead><tbody>
+      <tr><td>배경 제거</td><td>누런 종이색, 약한 그림자, 얼룩</td><td>얇은 회색 선과 흐린 글자가 사라질 수 있음</td></tr>
+      <tr><td>대비</td><td>글자와 배경의 밝기 차이</td><td>사진과 도형의 중간 톤이 뭉개질 수 있음</td></tr>
+      <tr><td>밝기</td><td>이미지 전체의 밝고 어두운 정도</td><td>밝으면 글자가 흐려지고 어두우면 배경이 남음</td></tr>
+    </tbody></table></div>
+
+    <h2>3. 형광펜과 색펜을 찾는 기준</h2>
+    <p>형광펜은 보통 밝기가 높고 색의 차이가 큰 픽셀로 나타납니다. 노랑, 분홍, 초록, 파랑 계열 중 밝은 색을 찾은 뒤 제거 강도만큼 흰색에 가깝게 만듭니다. 색펜은 형광펜보다 어둡고 채도가 높은 빨강, 파랑, 초록 픽셀을 대상으로 합니다. 인쇄물의 컬러 그래프나 사진도 같은 색 특성을 가질 수 있으므로 색 제거 강도가 높으면 필요한 컬러 정보까지 흐려질 수 있습니다.</p>
+    <p>색이 있는 도표를 보존해야 한다면 먼저 기본 자동 보정을 적용하고, 결과를 확인한 뒤 형광펜과 색펜 제거 값만 조금씩 올리는 편이 안전합니다. 완전한 흑백 문제지라면 흑백 변환을 켜서 색 정보를 버리고 지역 밝기 차이로 글자를 남길 수 있습니다.</p>
+
+    <h2>4. 흑백 변환이 일반 필터와 다른 점</h2>
+    <p>단순 흑백 필터는 색만 회색으로 바꾸기 때문에 그림자도 그대로 남습니다. 문제만의 흑백 모드는 픽셀 주변의 평균 밝기를 계산하고 해당 영역보다 충분히 어두운 픽셀을 글자로 판단하는 간단한 적응형 임계값 방식을 사용합니다. 종이 한쪽이 다른 쪽보다 어두워도 지역별 기준이 달라져 스캔한 문서처럼 보일 수 있습니다.</p>
+    <p>반대로 연필로 인쇄된 듯한 매우 흐린 선, 회색 음영이 중요한 과학 그림, 사진이 포함된 문제에는 흑백 모드가 적합하지 않을 수 있습니다. 이때는 흑백을 끄고 대비를 중간 정도로 유지해야 세부 정보가 남습니다.</p>
+
+    <h2>5. 검은 손글씨가 남는 이유</h2>
+    <p>검은 볼펜이나 진한 연필 필기와 검은 인쇄 글자는 픽셀 색만 보면 거의 같습니다. 브라우저 기반 픽셀 보정만으로는 글자의 의미, 필기 획의 모양, 인쇄 글꼴을 완벽히 구분할 수 없습니다. 따라서 검은 손글씨를 강제로 지우면 문제 본문이나 수식도 함께 사라질 위험이 있습니다. 문제만은 원문 보존을 우선해 검은 필기가 일부 남을 수 있도록 처리합니다.</p>
+    <p>검은 필기가 답안 영역에만 있다면 보정 후 이미지 편집기의 지우개나 자르기 기능으로 해당 영역을 수동 정리하는 것이 가장 확실합니다. 필기가 문제 글자와 겹친 경우 원본에 존재하지 않는 글자를 정확히 복원하는 것은 현재 기능 범위를 벗어납니다.</p>
+
+    <h2>6. 결과를 평가하는 기준</h2>
+    <p>좋은 결과는 무조건 새하얀 이미지가 아닙니다. 문제 번호, 작은 지수와 첨자, 분수선, 도형의 얇은 선이 읽히면서 불필요한 배경만 줄어든 결과가 좋습니다. 저장 전에 원본과 결과를 나란히 보고 작은 수식, 보기 번호, 그래프 축을 확대해 확인하세요. 정보가 사라졌다면 배경 제거와 대비를 낮추고, 얼룩이 남았다면 배경 제거를 조금 높입니다.</p>
+
+    <nav><a href="./">문제만 도구 사용하기</a><a href="scan-settings-guide.html">설정별 사용법</a><a href="troubleshooting.html">결과 문제 해결</a><a href="privacy.html">개인정보 처리방침</a></nav>
+  </article></main></body>
+</html>
